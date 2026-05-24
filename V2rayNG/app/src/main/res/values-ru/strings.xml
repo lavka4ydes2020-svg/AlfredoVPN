@@ -511,7 +511,8 @@
     <!-- Minimalist Home -->
     <string name="app_subtitle">Ваше приватное подключение</string>
     <string name="change_server">Сменить</string>
-    <string name="quick_subscriptions">Подписки</string>
+    <string name="quick_about">О приложении</string>
+    <string name="quick_update">Проверить обновление</string>
     <string name="quick_statistics">Статистика</string>
 
 </resources>

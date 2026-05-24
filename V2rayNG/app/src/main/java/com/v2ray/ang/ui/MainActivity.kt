@@ -9,17 +9,14 @@ import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
-import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import com.google.android.material.navigation.NavigationView
 
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
@@ -43,7 +40,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelectedListener {
+class MainActivity : HelperBaseActivity() {
     private val binding by lazy {
         ActivityMainBinding.inflate(layoutInflater)
     }
@@ -69,29 +66,12 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         // Hide the default toolbar title — we have our own header
         setupToolbar(binding.toolbar, false, "")
 
-        // Setup navigation drawer
-        binding.navView.setNavigationItemSelectedListener(this)
-        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() {
-                if (binding.drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    binding.drawerLayout.closeDrawer(GravityCompat.START)
-                } else {
-                    isEnabled = false
-                    onBackPressedDispatcher.onBackPressed()
-                    isEnabled = true
-                }
-            }
-        })
-
-        // ===== NEW UI CLICK HANDLERS =====
+        // ===== NEW UI CLICK HANDLERS ======
 
         // Big toggle button
         binding.btnConnectToggle.setOnClickListener { handleFabAction() }
 
         // Header icons
-        binding.btnDrawer.setOnClickListener {
-            binding.drawerLayout.openDrawer(GravityCompat.START)
-        }
         binding.btnPerApp.setOnClickListener {
             requestActivityLauncher.launch(Intent(this, PerAppProxyActivity::class.java))
         }
@@ -112,11 +92,11 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         binding.cardQuickPerApp.setOnClickListener {
             requestActivityLauncher.launch(Intent(this, PerAppProxyActivity::class.java))
         }
-        binding.cardQuickSubscriptions.setOnClickListener {
-            requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
+        binding.cardQuickAbout.setOnClickListener {
+            requestActivityLauncher.launch(Intent(this, AboutActivity::class.java))
         }
-        binding.cardQuickSettings.setOnClickListener {
-            showSettingsBottomSheet()
+        binding.cardQuickUpdate.setOnClickListener {
+            requestActivityLauncher.launch(Intent(this, CheckUpdateActivity::class.java))
         }
         binding.cardQuickStats.setOnClickListener {
             requestActivityLauncher.launch(Intent(this, LogcatActivity::class.java))
@@ -787,21 +767,6 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         return super.onKeyDown(keyCode, event)
     }
 
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        // Handle navigation view item clicks here.
-        when (item.itemId) {
-            R.id.sub_setting -> requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
-            R.id.per_app_proxy_settings -> requestActivityLauncher.launch(Intent(this, PerAppProxyActivity::class.java))
-            R.id.routing_setting -> requestActivityLauncher.launch(Intent(this, RoutingSettingActivity::class.java))
-            R.id.settings -> showSettingsBottomSheet()
-            R.id.about -> startActivity(Intent(this, AboutActivity::class.java))
-            R.id.check_update -> startActivity(Intent(this, CheckUpdateActivity::class.java))
-        }
-
-        binding.drawerLayout.closeDrawer(GravityCompat.START)
-        return true
-    }
 
     override fun onDestroy() {
         super.onDestroy()
