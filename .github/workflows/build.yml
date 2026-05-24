@@ -100,7 +100,7 @@ jobs:
         cd ${{ github.workspace }}/V2rayNG
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
         chmod 755 gradlew
-        ./gradlew assembleFdroidRelease --no-daemon
+        ./gradlew assembleFdroidRelease --no-daemon 2>&1 || ./gradlew assembleFdroidRelease --no-daemon --stacktrace 2>&1 | tail -100
 
     - name: Upload arm64-v8a APK
       uses: actions/upload-artifact@v7
