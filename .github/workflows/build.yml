@@ -30,8 +30,11 @@ jobs:
         log-accepted-android-sdk-licenses: false
         cmdline-tools-version: '13114758'
 
-    - name: Install NDK r27c (for HEV Tunnel)
+    - name: Install Android SDK Platform 37 + NDK r27c (for HEV Tunnel)
       run: |
+        echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
+          --channel=0 \
+          --install "platforms;android-37"
         echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager \
           --channel=0 \
           --install "ndk;27.2.12479018"
