@@ -70,8 +70,6 @@ data class ProfileItem(
 
     var browserDialerMode: String? = null,
 
-    var id: String? = null,
-
     ) {
     companion object {
         fun create(configType: EConfigType): ProfileItem {

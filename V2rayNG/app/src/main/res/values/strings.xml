@@ -516,4 +516,42 @@
     <string name="chip_preset_media">Media</string>
     <string name="per_app_proxy_count">Via VPN: %1$d of %2$d</string>
 
+    <!-- Redesigned UI strings -->
+    <string name="no_server_selected">No server selected</string>
+    <string name="toggle_press_to_connect">Press to connect</string>
+    <string name="toggle_press_to_disconnect">Press to disconnect</string>
+    <string name="toggle_connecting">Connecting…</string>
+    <string name="status_connected">Connected</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_connecting">Connecting</string>
+    <string name="stat_download">Download</string>
+    <string name="stat_upload">Upload</string>
+    <string name="stat_ping">Ping</string>
+    <string name="current_server_label">Current server</string>
+    <string name="quick_actions_label">Quick access</string>
+    <string name="all_settings_label">Settings</string>
+    <string name="statistics_label">Statistics</string>
+    <string name="servers_label">Servers</string>
+    <string name="change_server">Change</string>
+
+    <!-- Settings bottom sheet -->
+    <string name="settings_sheet_title">Settings</string>
+    <string name="settings_sheet_subtitle">Connection and configuration</string>
+    <string name="settings_section_basic">Basic</string>
+    <string name="settings_section_advanced">Advanced</string>
+    <string name="settings_advanced_label">DNS, MUX, Fragment, VPN core</string>
+    <string name="settings_advanced_warning">For experienced users only</string>
+
+    <!-- Advanced warning dialog -->
+    <string name="advanced_warning_title">Advanced settings</string>
+    <string name="advanced_warning_message">Changing these parameters may affect VPN core operation. Only change them if you understand what you are doing. Incorrect settings may break connectivity.</string>
+    <string name="advanced_warning_affects">Affects:</string>
+    <string name="advanced_warning_enter">Proceed anyway</string>
+
+    <!-- Auto-start, Kill Switch toggles -->
+    <string name="pref_auto_start_label">Auto-start on boot</string>
+    <string name="pref_kill_switch_label">Kill Switch</string>
+    <string name="pref_dark_theme_label">Dark theme</string>
+    <string name="pref_language_label">Language</string>
+
 </resources>

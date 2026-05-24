@@ -8,16 +8,17 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.content.ContextCompat
 import androidx.core.view.GravityCompat
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.navigation.NavigationView
 import com.google.android.material.tabs.TabLayoutMediator
 import com.v2ray.ang.AppConfig
@@ -69,19 +70,16 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
-        setupToolbar(binding.toolbar, false, getString(R.string.title_server))
+
+        // Hide the default toolbar title — we have our own header
+        setupToolbar(binding.toolbar, false, "")
 
         // setup viewpager and tablayout
         groupPagerAdapter = GroupPagerAdapter(this, emptyList())
         binding.viewPager.adapter = groupPagerAdapter
         binding.viewPager.isUserInputEnabled = true
 
-        // setup navigation drawer
-        val toggle = ActionBarDrawerToggle(
-            this, binding.drawerLayout, binding.toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close
-        )
-        binding.drawerLayout.addDrawerListener(toggle)
-        toggle.syncState()
+        // Setup navigation drawer
         binding.navView.setNavigationItemSelectedListener(this)
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -95,8 +93,53 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             }
         })
 
-        binding.fab.setOnClickListener { handleFabAction() }
+        // ===== NEW UI CLICK HANDLERS =====
+
+        // Big toggle button
+        binding.btnConnectToggle.setOnClickListener { handleFabAction() }
+
+        // Header icons
+        binding.btnDrawer.setOnClickListener {
+            binding.drawerLayout.openDrawer(GravityCompat.START)
+        }
+        binding.btnPerApp.setOnClickListener {
+            requestActivityLauncher.launch(Intent(this, PerAppProxyActivity::class.java))
+        }
+        binding.btnSettingsSheet.setOnClickListener {
+            showSettingsBottomSheet()
+        }
+
+        // Server card
+        binding.cardCurrentServer.setOnClickListener {
+            // Scroll to server list or open subscription settings
+            requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
+        }
+        binding.btnChangeServer.setOnClickListener {
+            requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
+        }
+
+        // Quick actions
+        binding.cardQuickPerApp.setOnClickListener {
+            requestActivityLauncher.launch(Intent(this, PerAppProxyActivity::class.java))
+        }
+        binding.cardQuickSubscriptions.setOnClickListener {
+            requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
+        }
+        binding.cardQuickSettings.setOnClickListener {
+            showSettingsBottomSheet()
+        }
+        binding.cardQuickStats.setOnClickListener {
+            // Launch full settings as a shortcut for now
+            requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
+        }
+
+        // Bottom test bar
         binding.layoutTest.setOnClickListener { handleLayoutTestClick() }
+
+        // ===== END NEW UI HANDLERS =====
+
+        // FAB is hidden — keep the handler for code compatibility
+        binding.fab.setOnClickListener { handleFabAction() }
 
         setupGroupTab()
         setupViewModel()
@@ -107,15 +150,121 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
         }
 
         checkAutoUpdate()
+        updateServerCard()
+    }
+
+    private fun showSettingsBottomSheet() {
+        val dialog = BottomSheetDialog(this)
+        val sheetView = layoutInflater.inflate(R.layout.bottom_sheet_settings, null)
+        dialog.setContentView(sheetView)
+
+        // Wire up the basic toggles
+        val autoStart = sheetView.findViewById<android.widget.CheckBox>(R.id.sheet_auto_start)
+        autoStart?.isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_IS_BOOTED, false)
+        autoStart?.setOnCheckedChangeListener { _, isChecked ->
+            MmkvManager.encodeSettings(AppConfig.PREF_IS_BOOTED, isChecked)
+        }
+
+        val killSwitch = sheetView.findViewById<android.widget.CheckBox>(R.id.sheet_kill_switch)
+        killSwitch?.isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_KILL_SWITCH, false)
+        killSwitch?.setOnCheckedChangeListener { _, isChecked ->
+            MmkvManager.encodeSettings(AppConfig.PREF_KILL_SWITCH, isChecked)
+            if (isChecked) {
+                // Show tip about Always-on VPN + Lockdown
+                AlertDialog.Builder(this)
+                    .setTitle(R.string.watchdog_always_on_title)
+                    .setMessage(R.string.watchdog_always_on_message)
+                    .setPositiveButton(R.string.watchdog_always_on_button) { _, _ ->
+                        startActivity(Intent(android.provider.Settings.ACTION_VPN_SETTINGS))
+                    }
+                    .setNegativeButton(R.string.watchdog_always_on_later, null)
+                    .show()
+            }
+        }
+
+        val darkTheme = sheetView.findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.sheet_dark_theme)
+        darkTheme?.let {
+            val currentMode = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0")
+            it.isChecked = currentMode == "2"
+            it.setOnCheckedChangeListener { _, isChecked ->
+                MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, if (isChecked) "2" else "0")
+                recreate()
+            }
+        }
+
+        // Language selector
+        val langBtn = sheetView.findViewById<View>(R.id.sheet_language)
+        langBtn?.setOnClickListener {
+            dialog.dismiss()
+            // Launch language settings — open full settings at the UI section
+            val intent = Intent(this, SettingsActivity::class.java)
+            requestActivityLauncher.launch(intent)
+        }
+
+        // Advanced settings button — show warning first
+        val advancedBtn = sheetView.findViewById<View>(R.id.sheet_advanced)
+        advancedBtn?.setOnClickListener {
+            dialog.dismiss()
+            showAdvancedWarningDialog()
+        }
+
+        // Close button
+        sheetView.findViewById<View>(R.id.sheet_close)?.setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun showAdvancedWarningDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.advanced_warning_title)
+            .setMessage(R.string.advanced_warning_message)
+            .setPositiveButton(R.string.advanced_warning_enter) { _, _ ->
+                requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun updateServerCard() {
+        val serverId = MmkvManager.getSelectServer()
+        if (!serverId.isNullOrEmpty()) {
+            val server = MmkvManager.decodeServerConfig(serverId)
+            if (server != null) {
+                binding.tvServerName.text = server.remarks.ifEmpty { getString(R.string.no_server_selected) }
+                val configType = server.configType
+                binding.tvServerDetail.text = when (configType) {
+                    EConfigType.VLESS -> "VLESS+Reality"
+                    EConfigType.VMESS -> "VMess"
+                    EConfigType.SHADOWSOCKS -> "Shadowsocks"
+                    EConfigType.SOCKS -> "SOCKS"
+                    EConfigType.HTTP -> "HTTP"
+                    EConfigType.TROJAN -> "Trojan"
+                    EConfigType.WIREGUARD -> "WireGuard"
+                    EConfigType.HYSTERIA2 -> "Hysteria2"
+                    else -> ""
+                }
+                // Show flag emoji based on server info or default
+                binding.tvServerFlag.text = "\uD83C\uDF10" // globe emoji as default
+                return
+            }
+        }
+        binding.tvServerName.text = getString(R.string.no_server_selected)
+        binding.tvServerDetail.text = ""
+        binding.tvServerFlag.text = "\uD83C\uDF10"
     }
 
     private fun setupViewModel() {
         mainViewModel.updateTestResultAction.observe(this) { setTestState(it) }
         mainViewModel.isRunning.observe(this) { isRunning ->
             applyRunningState(false, isRunning)
+            if (isRunning) updateServerCard()
         }
         mainViewModel.startListenBroadcast()
-        mainViewModel.initAssets(assets)
+        lifecycleScope.launch(Dispatchers.IO) {
+            mainViewModel.initAssets(assets)
+        }
     }
 
     private fun setupGroupTab() {
@@ -180,7 +329,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             setTestState(getString(R.string.connection_test_testing))
             mainViewModel.testCurrentServerRealPing()
         } else {
-            // service not running: keep existing no-op (could show a message if desired)
+            // service not running: keep existing no-op
         }
     }
 
@@ -208,27 +357,72 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
 
     private fun applyRunningState(isLoading: Boolean, isRunning: Boolean) {
         if (isLoading) {
+            // Update the new toggle
+            binding.btnConnectToggle.isEnabled = false
+            binding.btnConnectToggle.setImageResource(R.drawable.ic_fab_check)
+            binding.btnConnectToggle.backgroundTintList = ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.colorWhite)
+            )
+            binding.tvToggleLabel.text = getString(R.string.toggle_connecting)
+
+            // Update the badge
+            binding.tvConnectionBadge.background = ContextCompat.getDrawable(this, R.drawable.badge_connecting)
+            binding.tvConnectionBadge.setTextColor(ContextCompat.getColor(this, R.color.amber_700))
+            binding.tvConnectionBadge.text = getString(R.string.status_connecting)
+
+            // Also update hidden FAB for code compatibility
             binding.fab.setImageResource(R.drawable.ic_fab_check)
             return
         }
 
         if (isRunning) {
+            // Update new toggle
+            binding.btnConnectToggle.setImageResource(R.drawable.ic_stop_24dp)
+            binding.btnConnectToggle.background = ContextCompat.getDrawable(this, R.drawable.toggle_button_on)
+            binding.btnConnectToggle.isEnabled = true
+            binding.tvToggleLabel.text = getString(R.string.toggle_press_to_disconnect)
+            binding.btnConnectToggle.contentDescription = getString(R.string.action_stop_service)
+
+            // Update badge
+            binding.tvConnectionBadge.background = ContextCompat.getDrawable(this, R.drawable.badge_connected)
+            binding.tvConnectionBadge.setTextColor(ContextCompat.getColor(this, R.color.green_600))
+            binding.tvConnectionBadge.text = getString(R.string.status_connected)
+
+            // Test state
+            setTestState(getString(R.string.connection_connected))
+            binding.layoutTest.isFocusable = true
+
+            // FAB
             binding.fab.setImageResource(R.drawable.ic_stop_24dp)
             binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_active))
             binding.fab.contentDescription = getString(R.string.action_stop_service)
-            setTestState(getString(R.string.connection_connected))
-            binding.layoutTest.isFocusable = true
         } else {
+            // Update new toggle
+            binding.btnConnectToggle.setImageResource(R.drawable.ic_play_24dp)
+            binding.btnConnectToggle.background = ContextCompat.getDrawable(this, R.drawable.toggle_button_off)
+            binding.btnConnectToggle.isEnabled = true
+            binding.tvToggleLabel.text = getString(R.string.toggle_press_to_connect)
+            binding.btnConnectToggle.contentDescription = getString(R.string.tasker_start_service)
+
+            // Update badge
+            binding.tvConnectionBadge.background = ContextCompat.getDrawable(this, R.drawable.badge_disconnected)
+            binding.tvConnectionBadge.setTextColor(ContextCompat.getColor(this, R.color.red_600))
+            binding.tvConnectionBadge.text = getString(R.string.status_disconnected)
+
+            // Test state
+            setTestState(getString(R.string.connection_test_pending))
+            binding.layoutTest.isFocusable = false
+
+            // FAB
             binding.fab.setImageResource(R.drawable.ic_play_24dp)
             binding.fab.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.color_fab_inactive))
             binding.fab.contentDescription = getString(R.string.tasker_start_service)
-            setTestState(getString(R.string.connection_not_connected))
-            binding.layoutTest.isFocusable = false
         }
     }
 
     override fun onResume() {
         super.onResume()
+        updateServerCard()
     }
 
     override fun onPause() {
@@ -667,7 +861,7 @@ class MainActivity : HelperBaseActivity(), NavigationView.OnNavigationItemSelect
             R.id.sub_setting -> requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
             R.id.per_app_proxy_settings -> requestActivityLauncher.launch(Intent(this, PerAppProxyActivity::class.java))
             R.id.routing_setting -> requestActivityLauncher.launch(Intent(this, RoutingSettingActivity::class.java))
-            R.id.settings -> requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
+            R.id.settings -> showSettingsBottomSheet()
             R.id.about -> startActivity(Intent(this, AboutActivity::class.java))
             R.id.check_update -> startActivity(Intent(this, CheckUpdateActivity::class.java))
         }

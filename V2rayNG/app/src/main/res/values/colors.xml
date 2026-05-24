@@ -54,4 +54,9 @@
     <color name="md_theme_shadow">#000000</color>
     <color name="md_theme_surfaceTint">#000000</color>
     <color name="md_theme_scrim">#000000</color>
+
+    <!-- Redesigned UI colors -->
+    <color name="red_600">#DC2626</color>
+    <color name="green_600">#059669</color>
+    <color name="amber_700">#D97706</color>
 </resources>
