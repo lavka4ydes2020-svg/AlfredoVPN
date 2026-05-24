@@ -55,7 +55,8 @@ object SettingsManager {
     private fun initRoutingRulesets(context: Context) {
         val exist = MmkvManager.decodeRoutingRulesets()
         if (exist.isNullOrEmpty()) {
-            val rulesetList = getPresetRoutingRulesets(context)
+            // Use WHITE_RUSSIA routing preset by default for Alfredo VPN
+            val rulesetList = getPresetRoutingRulesets(context, RoutingType.WHITE_RUSSIA.ordinal)
             MmkvManager.encodeRoutingRulesets(rulesetList)
         }
     }
@@ -66,7 +67,7 @@ object SettingsManager {
      * @param index The index of the routing type.
      * @return A mutable list of RulesetItem.
      */
-    private fun getPresetRoutingRulesets(context: Context, index: Int = 0): MutableList<RulesetItem>? {
+    private fun getPresetRoutingRulesets(context: Context, index: Int = RoutingType.WHITE_RUSSIA.ordinal): MutableList<RulesetItem>? {
         val fileName = RoutingType.fromIndex(index).fileName
         val assets = Utils.readTextFromAssets(context, fileName)
         if (TextUtils.isEmpty(assets)) {
@@ -475,7 +476,7 @@ object SettingsManager {
      * @return True if HEV TUN is used, false otherwise.
      */
     fun isUsingHevTun(): Boolean {
-        return MmkvManager.decodeSettingsBool(AppConfig.PREF_USE_HEV_TUNNEL, true)
+        return MmkvManager.decodeSettingsBool(AppConfig.PREF_USE_HEV_TUNNEL, false)
     }
 
     /**

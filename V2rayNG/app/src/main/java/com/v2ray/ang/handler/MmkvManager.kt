@@ -3,6 +3,7 @@ package com.v2ray.ang.handler
 import com.tencent.mmkv.MMKV
 import com.v2ray.ang.AppConfig.DEFAULT_SUBSCRIPTION_ID
 import com.v2ray.ang.AppConfig.PREF_IS_BOOTED
+import com.v2ray.ang.AppConfig.PREF_KILL_SWITCH
 import com.v2ray.ang.AppConfig.PREF_ROUTING_RULESET
 import com.v2ray.ang.dto.entities.AssetUrlCache
 import com.v2ray.ang.dto.entities.AssetUrlItem
@@ -144,7 +145,15 @@ object MmkvManager {
         if (json.isNullOrBlank()) {
             return null
         }
-        return JsonUtil.fromJsonSafe(json, ProfileItem::class.java)
+        val config = JsonUtil.fromJsonSafe(json, ProfileItem::class.java) ?: return null
+
+        // Overwrite sensitive fields from encrypted storage (if available)
+        // Legacy profiles (saved before encryption) fall back to plain MMKV values
+        EncryptedPrefsManager.getSecureId(guid)?.let { config.id = it }
+        EncryptedPrefsManager.getSecurePublicKey(guid)?.let { config.publicKey = it }
+        EncryptedPrefsManager.getSecureShortId(guid)?.let { config.shortId = it }
+
+        return config
     }
 
 
@@ -158,6 +167,13 @@ object MmkvManager {
     fun encodeServerConfig(guid: String, config: ProfileItem): String {
         val key = guid.ifBlank { Utils.getUuid() }
         profileFullStorage.encode(key, JsonUtil.toJson(config))
+
+        // Encrypt sensitive fields (UUID, publicKey, shortId) via AndroidKeyStore
+        EncryptedPrefsManager.saveSecureFields(key,
+            id = config.id,
+            publicKey = config.publicKey,
+            shortId = config.shortId
+        )
 
         // Use default subscription for servers without subscription
         val subId = getSubscriptionId(config.subscriptionId)
@@ -204,6 +220,7 @@ object MmkvManager {
         encodeServerList(serverList, subId)
 
         // Clean up storage
+        EncryptedPrefsManager.removeSecureFields(guid)
         if (getSelectServer() == guid) {
             mainStorage.remove(KEY_SELECTED_SERVER)
         }
@@ -696,6 +713,20 @@ object MmkvManager {
      */
     fun decodeStartOnBoot(): Boolean {
         return decodeSettingsBool(PREF_IS_BOOTED, false)
+    }
+
+    /**
+     * Encodes the kill switch setting.
+     */
+    fun encodeKillSwitch(enabled: Boolean) {
+        encodeSettings(PREF_KILL_SWITCH, enabled)
+    }
+
+    /**
+     * Decodes the kill switch setting.
+     */
+    fun decodeKillSwitch(): Boolean {
+        return decodeSettingsBool(PREF_KILL_SWITCH, false)
     }
 
     //endregion

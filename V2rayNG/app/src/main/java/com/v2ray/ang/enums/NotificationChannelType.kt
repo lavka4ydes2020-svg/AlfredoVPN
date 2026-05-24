@@ -18,5 +18,10 @@ enum class NotificationChannelType(
         channelId = "core_test_channel",
         channelName = "Core Test Service",
         notificationId = 12
+    ),
+    WATCHDOG(
+        channelId = "watchdog_channel",
+        channelName = "Kill Switch Watchdog",
+        notificationId = 14
     )
 }

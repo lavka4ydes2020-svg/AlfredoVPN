@@ -26,7 +26,6 @@ import com.v2ray.ang.util.HttpUtil
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import com.v2ray.ang.viewmodel.PerAppProxyViewModel
-import es.dmoral.toasty.Toasty
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -38,6 +37,30 @@ class PerAppProxyActivity : BaseActivity() {
     private var adapter: PerAppProxyAdapter? = null
     private var appsAll: List<AppInfo>? = null
     private val viewModel: PerAppProxyViewModel by viewModels()
+
+    /**
+     * Recommended apps for Alfredo VPN per-app proxy.
+     * These apps will have their traffic routed through the VPN.
+     */
+    companion object {
+        /**
+         * Prefix-based matching for apps that have multiple package variants.
+         * Telegram, for example, can be org.telegram.messenger, org.telegram.messenger.web, etc.
+         */
+        private val TELEGRAM_PREFIXES = listOf("org.telegram.messenger", "org.telegram.plus", "org.thunderdog.challegram")
+
+        /**
+         * Exact package matches for recommended apps.
+         */
+        val RECOMMENDED_PACKAGES = setOf(
+            "com.whatsapp",                     // WhatsApp
+            "com.instagram.android",            // Instagram
+            "com.google.android.youtube",       // YouTube
+            "com.discord",                      // Discord
+            "com.google.android.apps.meetings", // Google Meet
+            // FaceTime — iOS only, not available on Android
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -53,14 +76,9 @@ class PerAppProxyActivity : BaseActivity() {
         }
         binding.switchPerAppProxy.isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_PER_APP_PROXY, false)
 
-        binding.switchBypassApps.setOnCheckedChangeListener { _, isChecked ->
-            MmkvManager.encodeSettings(AppConfig.PREF_BYPASS_APPS, isChecked)
-        }
-        binding.switchBypassApps.isChecked = MmkvManager.decodeSettingsBool(AppConfig.PREF_BYPASS_APPS, false)
-
-        binding.layoutSwitchBypassAppsTips.setOnClickListener {
-            Toasty.info(this, R.string.summary_pref_per_app_proxy, Toast.LENGTH_LONG, true).show()
-        }
+        // Always use proxy mode (only selected apps through VPN) — bypass mode is removed
+        // for simplicity. The per-app proxy always means "only these apps".
+        MmkvManager.encodeSettings(AppConfig.PREF_BYPASS_APPS, false)
     }
 
     private fun initList() {
@@ -141,8 +159,8 @@ class PerAppProxyActivity : BaseActivity() {
             true
         }
 
-        R.id.select_proxy_app -> {
-            selectProxyAppAuto()
+        R.id.select_recommended -> {
+            selectRecommendedApps()
             allowPerAppProxy()
             true
         }
@@ -159,6 +177,37 @@ class PerAppProxyActivity : BaseActivity() {
         }
 
         else -> super.onOptionsItemSelected(item)
+    }
+
+    /**
+     * Selects the recommended apps for VPN proxying.
+     * Uses prefix matching for apps like Telegram that have multiple package variants.
+     */
+    private fun selectRecommendedApps() {
+        viewModel.clear()
+        adapter?.let { adapter ->
+            var selectedCount = 0
+            val totalRecommended = RECOMMENDED_PACKAGES.size + 1 // +1 for Telegram
+
+            adapter.apps.forEach { app ->
+                val pkg = app.packageName
+                when {
+                    // Telegram: match any variant by prefix
+                    TELEGRAM_PREFIXES.any { pkg.startsWith(it) } -> {
+                        viewModel.add(pkg)
+                        selectedCount++
+                    }
+                    // Other recommended apps: exact match
+                    pkg in RECOMMENDED_PACKAGES -> {
+                        viewModel.add(pkg)
+                        selectedCount++
+                    }
+                }
+            }
+
+            toast(getString(R.string.recommended_apps_selected, selectedCount, totalRecommended))
+            refreshData()
+        }
     }
 
     private fun selectAllApp() {
@@ -184,41 +233,6 @@ class PerAppProxyActivity : BaseActivity() {
         }
     }
 
-    private fun selectProxyAppAuto() {
-        toast(R.string.msg_downloading_content)
-        showLoading()
-
-        val url = AppConfig.ANDROID_PACKAGE_NAME_LIST_URL
-        lifecycleScope.launch(Dispatchers.IO) {
-            var content = HttpUtil.getUrlContent(
-                UrlContentRequest(
-                    url = url,
-                    timeout = 5000
-                )
-            )
-            if (content.isNullOrEmpty()) {
-                val proxyUsername = SettingsManager.getSocksUsername()
-                val proxyPassword = SettingsManager.getSocksPassword()
-                val httpPort = SettingsManager.getHttpPort()
-                content = HttpUtil.getUrlContent(
-                    UrlContentRequest(
-                        url = url,
-                        timeout = 5000,
-                        httpPort = httpPort,
-                        proxyUsername = proxyUsername,
-                        proxyPassword = proxyPassword
-                    )
-                ) ?: ""
-            }
-            launch(Dispatchers.Main) {
-                //LogUtil.i(AppConfig.TAG, content)
-                selectProxyApp(content, true)
-                toastSuccess(R.string.toast_success)
-                hideLoading()
-            }
-        }
-    }
-
     private fun importProxyApp() {
         val content = Utils.getClipboard(applicationContext)
         if (TextUtils.isEmpty(content)) return
@@ -227,7 +241,7 @@ class PerAppProxyActivity : BaseActivity() {
     }
 
     private fun exportProxyApp() {
-        var lst = binding.switchBypassApps.isChecked.toString()
+        var lst = "false" // Always proxy mode
 
         viewModel.getAll().forEach { pkg ->
             lst = lst + System.lineSeparator() + pkg
@@ -252,27 +266,14 @@ class PerAppProxyActivity : BaseActivity() {
             if (TextUtils.isEmpty(proxyApps)) return false
 
             viewModel.clear()
-
-            if (binding.switchBypassApps.isChecked) {
-                adapter?.let { adapter ->
-                    adapter.apps.forEach { app ->
-                        val packageName = app.packageName
-                        if (!inProxyApps(proxyApps, packageName, force)) {
-                            viewModel.add(packageName)
-                        }
+            adapter?.let { adapter ->
+                adapter.apps.forEach { app ->
+                    val packageName = app.packageName
+                    if (inProxyApps(proxyApps, packageName, force)) {
+                        viewModel.add(packageName)
                     }
-                    refreshData()
                 }
-            } else {
-                adapter?.let { adapter ->
-                    adapter.apps.forEach { app ->
-                        val packageName = app.packageName
-                        if (inProxyApps(proxyApps, packageName, force)) {
-                            viewModel.add(packageName)
-                        }
-                    }
-                    refreshData()
-                }
+                refreshData()
             }
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Error selecting proxy app", e)

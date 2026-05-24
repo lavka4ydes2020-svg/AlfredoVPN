@@ -13,6 +13,16 @@
 
     <!-- Notifications -->
     <string name="notification_action_stop_v2ray">Stop</string>
+    <string name="notification_action_proxy_apps">Apps</string>
+    <string name="notification_content_connected">Connected • %1$s</string>
+    <string name="notification_uptime">⏱ %1$s</string>
+    <string name="notification_per_app_disabled">Proxy: all apps</string>
+    <string name="notification_per_app_no_apps">Proxy: no apps selected</string>
+    <string name="notification_per_app_count">Proxy: %1$d apps</string>
+    <string name="notification_routing_russia">Route: RU bypass</string>
+    <string name="notification_routing_china">Route: CN bypass</string>
+    <string name="notification_routing_global">Route: Global</string>
+    <string name="notification_traffic_loading">Loading traffic…</string>
     <string name="toast_permission_denied">Unable to obtain the permission</string>
     <string name="toast_permission_denied_notification">Unable to obtain the notification permission</string>
     <string name="notification_action_more">Click for more</string>
@@ -159,6 +169,22 @@
     <string name="summary_pref_per_app_proxy">General: Checked apps use proxy, unchecked apps connect directly; \nBypass mode: checked apps connect directly, unchecked apps use proxy. \nThe option to automatically select proxy applications is in the menu</string>
     <string name="title_pref_is_booted">Auto connect at startup</string>
     <string name="summary_pref_is_booted">Automatically connects to the selected server at startup, which may be unsuccessful</string>
+    <string name="title_pref_kill_switch">Kill Switch</string>
+    <string name="summary_pref_kill_switch">Block all network traffic if VPN disconnects unexpectedly (Android 10+)</string>
+
+    <string name="watchdog_notification_title">Kill Switch Active</string>
+    <string name="watchdog_notification_active">VPN connection monitored — blocking non-VPN traffic</string>
+    <string name="watchdog_notification_restoring">VPN disconnected — restoring connection (%1$d/%2$d)...</string>
+    <string name="watchdog_notification_failed">VPN restart failed — traffic blocked until manual reconnect</string>
+
+    <string name="watchdog_always_on_title">Enable System-Level Kill Switch?</string>
+    <string name="watchdog_always_on_message">For maximum protection, also enable \"Always-on VPN\" + \"Block connections without VPN\" in system settings. This way, even if the app is killed, Android itself blocks all traffic.</string>
+    <string name="watchdog_always_on_button">Open System VPN Settings</string>
+    <string name="watchdog_always_on_later">Later</string>
+
+    <string name="menu_item_select_recommended">Recommended</string>
+    <string name="recommended_apps_selected">Selected %1$d of %2$d recommended apps</string>
+    <string name="per_app_proxy_description">Only selected apps use the VPN tunnel. All other apps connect directly.</string>
 
     <string name="title_pref_auto_remove_invalid_after_test">Auto delete invalid config after testing</string>
     <string name="summary_pref_auto_remove_invalid_after_test">Test results may not be accurate; deleted config cannot be recovered.</string>

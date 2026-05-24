@@ -61,6 +61,13 @@ V2rayNG/app/google-services.json
 *.sublime-workspace
 *.sublime-project
 
+# Ignore Windows-specific files
+*.cmd
+C:\\temp\\*
+
+# Ignore auto-generated Gradle files
+V2rayNG/gradle/gradle-daemon-jvm.properties
+
 # Ignore OS-specific files
 Thumbs.db
 .DS_Store

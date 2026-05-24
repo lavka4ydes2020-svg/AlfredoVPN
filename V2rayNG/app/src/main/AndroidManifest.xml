@@ -234,6 +234,15 @@
         </receiver>
 
         <service
+            android:name=".service.WatchdogService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="vpn" />
+        </service>
+
+        <service
             android:name=".service.QSTileService"
             android:exported="true"
             android:foregroundServiceType="specialUse"

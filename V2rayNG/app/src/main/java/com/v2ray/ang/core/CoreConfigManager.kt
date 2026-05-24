@@ -623,13 +623,17 @@ object CoreConfigManager {
     }
 
     /**
-     * Remove speed-test runtime sections when the feature is disabled.
+     * Always enable outbound traffic statistics for the notification speed display.
+     * No longer gated by PREF_SPEED_ENABLED.
      */
     private fun applySpeedDisabled(v2rayConfig: V2rayConfig) {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) != true) {
-            v2rayConfig.stats = null
-            v2rayConfig.policy = null
-        }
+        v2rayConfig.stats = mapOf<String, Any>()
+        v2rayConfig.policy = V2rayConfig.PolicyBean(
+            levels = mapOf("0" to V2rayConfig.PolicyBean.LevelBean(
+                statsUserUplink = true,
+                statsUserDownlink = true,
+            )),
+        )
     }
 
     /**

@@ -8,6 +8,12 @@
         app:actionViewClass="androidx.appcompat.widget.SearchView"
         app:showAsAction="ifRoom" />
     <item
+        android:id="@+id/select_recommended"
+        android:icon="@drawable/ic_description_24dp"
+        android:title="@string/menu_item_select_recommended"
+        app:showAsAction="withText" />
+
+    <item
         android:id="@+id/select_all"
         android:icon="@drawable/ic_select_all_24dp"
         android:title="@string/menu_item_select_all"
@@ -17,12 +23,6 @@
         android:id="@+id/invert_selection"
         android:icon="@drawable/ic_select_all_24dp"
         android:title="@string/menu_item_invert_selection"
-        app:showAsAction="withText" />
-
-    <item
-        android:id="@+id/select_proxy_app"
-        android:icon="@drawable/ic_description_24dp"
-        android:title="@string/menu_item_select_proxy_app"
         app:showAsAction="withText" />
 
     <item

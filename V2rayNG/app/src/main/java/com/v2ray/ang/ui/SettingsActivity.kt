@@ -54,6 +54,7 @@ class SettingsActivity : BaseActivity() {
         private val socksPassword by lazy { findPreference<EditTextPreference>(AppConfig.PREF_SOCKS_PASSWORD) }
         private val socksEnableUdp by lazy { findPreference<CheckBoxPreference>(AppConfig.PREF_SOCKS_ENABLE_UDP) }
         private val proxySharing by lazy { findPreference<CheckBoxPreference>(AppConfig.PREF_PROXY_SHARING) }
+        private val killSwitch by lazy { findPreference<CheckBoxPreference>(AppConfig.PREF_KILL_SWITCH) }
 
         override fun onCreatePreferences(bundle: Bundle?, s: String?) {
             // Use MMKV as the storage backend for all Preferences
@@ -110,6 +111,24 @@ class SettingsActivity : BaseActivity() {
 
             dynamicSocksPort?.setOnPreferenceChangeListener { _, newValue ->
                 updateDynamicSocksPort(newValue as Boolean)
+                true
+            }
+
+            killSwitch?.setOnPreferenceChangeListener { _, newValue ->
+                val enabled = newValue as Boolean
+                if (enabled) {
+                    // Show tip about Always-on VPN + Lockdown (system-level kill switch)
+                    android.app.AlertDialog.Builder(requireContext())
+                        .setTitle(R.string.watchdog_always_on_title)
+                        .setMessage(R.string.watchdog_always_on_message)
+                        .setPositiveButton(R.string.watchdog_always_on_button) { _, _ ->
+                            startActivity(
+                                android.content.Intent(android.provider.Settings.ACTION_VPN_SETTINGS)
+                            )
+                        }
+                        .setNegativeButton(R.string.watchdog_always_on_later, null)
+                        .show()
+                }
                 true
             }
         }

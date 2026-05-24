@@ -12,6 +12,16 @@
 
     <!-- Notifications -->
     <string name="notification_action_stop_v2ray">Остановить</string>
+    <string name="notification_action_proxy_apps">Приложения</string>
+    <string name="notification_content_connected">Подключено • %1$s</string>
+    <string name="notification_uptime">⏱ %1$s</string>
+    <string name="notification_per_app_disabled">Прокси: все приложения</string>
+    <string name="notification_per_app_no_apps">Прокси: не выбрано</string>
+    <string name="notification_per_app_count">Прокси: %1$d прил.</string>
+    <string name="notification_routing_russia">Маршрут: обход РФ</string>
+    <string name="notification_routing_china">Маршрут: обход КНР</string>
+    <string name="notification_routing_global">Маршрут: глобальный</string>
+    <string name="notification_traffic_loading">Загрузка трафика…</string>
     <string name="toast_permission_denied">Разрешение не получено</string>
     <string name="toast_permission_denied_notification">Разрешение на отображение уведомлений не получено</string>
     <string name="notification_action_more">Ещё…</string>
@@ -158,6 +168,22 @@
     <string name="summary_pref_per_app_proxy">Основной: выбранное приложение соединяется через прокси, не выбранное — напрямую;\nРежим обхода: выбранное приложение соединяется напрямую, не выбранное — через прокси.\nЕсть возможность автоматического выбора проксируемых приложений в меню.</string>
     <string name="title_pref_is_booted">Автоподключение при запуске</string>
     <string name="summary_pref_is_booted">Автоматически подключаться к выбранному серверу при запуске приложения (может оказаться неудачным)</string>
+    <string name="title_pref_kill_switch">Kill Switch</string>
+    <string name="summary_pref_kill_switch">Блокировать весь трафик при неожиданном отключении VPN (только Android 10+)</string>
+
+    <string name="watchdog_notification_title">Kill Switch Активен</string>
+    <string name="watchdog_notification_active">VPN под наблюдением — трафик без VPN заблокирован</string>
+    <string name="watchdog_notification_restoring">VPN отключился — восстанавливаем (%1$d/%2$d)...</string>
+    <string name="watchdog_notification_failed">Не удалось восстановить VPN — трафик заблокирован до ручного подключения</string>
+
+    <string name="watchdog_always_on_title">Включить системный Kill Switch?</string>
+    <string name="watchdog_always_on_message">Для максимальной защиты также включите \"Always-on VPN\" + \"Блокировать подключения без VPN\" в настройках системы. Тогда даже если приложение будет убито системой, Android сам заблокирует трафик.</string>
+    <string name="watchdog_always_on_button">Открыть настройки VPN</string>
+    <string name="watchdog_always_on_later">Позже</string>
+
+    <string name="menu_item_select_recommended">Рекомендуемые</string>
+    <string name="recommended_apps_selected">Выбрано %1$d из %2$d рекомендуемых приложений</string>
+    <string name="per_app_proxy_description">Только выбранные приложения используют VPN. Все остальные работают напрямую.</string>
 
     <string name="title_pref_auto_remove_invalid_after_test">Автоудаление нерабочих профилей</string>
     <string name="summary_pref_auto_remove_invalid_after_test">Автоматическое удаление нерабочих профилей после проверки (результаты проверки могут быть неточными; восстановить удалённые профили невозможно)</string>

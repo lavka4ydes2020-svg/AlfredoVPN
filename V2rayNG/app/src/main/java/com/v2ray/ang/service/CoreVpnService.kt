@@ -15,6 +15,7 @@ import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.os.StrictMode
 import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.LOOPBACK
 import com.v2ray.ang.BuildConfig
@@ -57,8 +58,22 @@ class CoreVpnService : VpnService(), ServiceControl {
     @delegate:RequiresApi(Build.VERSION_CODES.P)
     private val defaultNetworkCallback by lazy {
         object : ConnectivityManager.NetworkCallback() {
+
+            /** Tracks whether we experienced a full network disconnection. */
+            private var networkWasLost = false
+
             override fun onAvailable(network: Network) {
+                LogUtil.i(AppConfig.TAG, "StartCore-VPN: Default network available")
                 setUnderlyingNetworks(arrayOf(network))
+
+                // If we previously lost the network, restart the core to
+                // re-establish fresh connections through the new interface.
+                // This prevents the "VPN connected but no internet" state.
+                if (networkWasLost) {
+                    networkWasLost = false
+                    LogUtil.i(AppConfig.TAG, "StartCore-VPN: Network restored after loss — restarting core loop")
+                    restartCoreLoop()
+                }
             }
 
             override fun onCapabilitiesChanged(network: Network, networkCapabilities: NetworkCapabilities) {
@@ -67,6 +82,8 @@ class CoreVpnService : VpnService(), ServiceControl {
             }
 
             override fun onLost(network: Network) {
+                LogUtil.w(AppConfig.TAG, "StartCore-VPN: Default network lost")
+                networkWasLost = true
                 setUnderlyingNetworks(null)
             }
         }
@@ -116,6 +133,14 @@ class CoreVpnService : VpnService(), ServiceControl {
         NotificationManager.showNotification(null)
         setupVpnService()
         startService()
+
+        // Start Watchdog service if Kill Switch is enabled
+        if (MmkvManager.decodeKillSwitch()) {
+            val watchdogIntent = Intent(this, WatchdogService::class.java)
+            ContextCompat.startForegroundService(this, watchdogIntent)
+            LogUtil.i(AppConfig.TAG, "StartCore-VPN: Watchdog service started")
+        }
+
         return START_STICKY
         //return super.onStartCommand(intent, flags, startId)
     }
@@ -138,6 +163,41 @@ class CoreVpnService : VpnService(), ServiceControl {
 
     override fun stopService() {
         stopAllService(true)
+    }
+
+    /**
+     * Restarts the core loop while keeping the VPN interface alive.
+     *
+     * Called when the default network changes (e.g. WiFi→mobile, or
+     * reconnection after a drop). Stops and restarts v2ray core so it
+     * establishes fresh connections through the new network interface.
+     */
+    private fun restartCoreLoop() {
+        if (!::mInterface.isInitialized) {
+            LogUtil.e(AppConfig.TAG, "StartCore-VPN: Interface not initialized for restart")
+            return
+        }
+        if (!CoreServiceManager.isRunning()) {
+            LogUtil.i(AppConfig.TAG, "StartCore-VPN: Core not running during restart call — starting fresh")
+            CoreServiceManager.startCoreLoop(mInterface)
+            return
+        }
+
+        try {
+            CoreServiceManager.stopCoreLoop()
+
+            // Small delay to let the new network settle and old connections drain.
+            // 1.5s is a good balance between responsiveness and reliability.
+            try { Thread.sleep(1500) } catch (_: InterruptedException) {}
+
+            if (CoreServiceManager.startCoreLoop(mInterface)) {
+                LogUtil.i(AppConfig.TAG, "StartCore-VPN: Core loop restarted successfully")
+            } else {
+                LogUtil.e(AppConfig.TAG, "StartCore-VPN: Failed to restart core loop after network change")
+            }
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "StartCore-VPN: Error restarting core loop", e)
+        }
     }
 
     override fun vpnProtect(socket: Int): Boolean {
@@ -272,9 +332,16 @@ class CoreVpnService : VpnService(), ServiceControl {
             }
         }
 
-        // Android Q (API 29) and above: Configure metering and HTTP proxy
+        // Android Q (API 29) and above: Configure metering, HTTP proxy, and kill switch
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             builder.setMetered(false)
+
+            // Kill Switch: block all non-VPN traffic when enabled
+            if (MmkvManager.decodeKillSwitch()) {
+                builder.setBlocking(true)
+                LogUtil.i(AppConfig.TAG, "StartCore-VPN: Kill Switch is enabled")
+            }
+
             if (MmkvManager.decodeSettingsBool(AppConfig.PREF_APPEND_HTTP_PROXY)) {
                 builder.setHttpProxy(ProxyInfo.buildDirectProxy(LOOPBACK, SettingsManager.getHttpPort()))
             }
@@ -351,6 +418,12 @@ class CoreVpnService : VpnService(), ServiceControl {
 //        val info = loadVpnNetworkInfo(configName, emptyInfo)!! + (lastNetworkInfo ?: emptyInfo)
 //        saveVpnNetworkInfo(configName, info)
         isRunning = false
+
+        // Stop Watchdog service if running
+        val watchdogIntent = Intent(this, WatchdogService::class.java)
+        stopService(watchdogIntent)
+        LogUtil.i(AppConfig.TAG, "StartCore-VPN: Watchdog service stopped")
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
                 connectivity.unregisterNetworkCallback(defaultNetworkCallback)

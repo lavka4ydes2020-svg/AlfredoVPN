@@ -295,6 +295,13 @@ object AngConfigManager {
             // Save profile directly without updating serverList
             MmkvManager.encodeProfileDirect(key, JsonUtil.toJson(config))
 
+            // Encrypt sensitive fields for batch-saved profiles
+            EncryptedPrefsManager.saveSecureFields(key,
+                id = config.id,
+                publicKey = config.publicKey,
+                shortId = config.shortId
+            )
+
             if (!serverList.contains(key)) {
                 serverList.add(0, key)
                 if (needSetSelected) {

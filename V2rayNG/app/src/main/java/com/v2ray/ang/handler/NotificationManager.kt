@@ -8,7 +8,10 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.graphics.Color
+import android.net.TrafficStats
 import android.os.Build
+import android.os.SystemClock
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.v2ray.ang.AppConfig
@@ -17,6 +20,7 @@ import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.extension.toSpeedString
 import com.v2ray.ang.ui.MainActivity
+import com.v2ray.ang.ui.PerAppProxyActivity
 import com.v2ray.ang.util.LogUtil
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,20 +35,42 @@ object NotificationManager {
     private const val NOTIFICATION_PENDING_INTENT_CONTENT = 0
     private const val NOTIFICATION_PENDING_INTENT_STOP_V2RAY = 1
     private const val NOTIFICATION_PENDING_INTENT_RESTART_V2RAY = 2
+    private const val NOTIFICATION_PENDING_INTENT_PER_APP = 3
     private const val NOTIFICATION_ICON_THRESHOLD = 3000
     private const val QUERY_INTERVAL_MS = 3000L
+
+    /** Alfredo VPN purple accent color. */
+    private val ALFREDO_PURPLE = Color.parseColor("#CE93D8")
 
     private var lastQueryTime = 0L
     private var mBuilder: NotificationCompat.Builder? = null
     private var speedNotificationJob: Job? = null
     private var mNotificationManager: NotificationManager? = null
 
+    /** Elapsed realtime when the VPN connection started (for uptime display). */
+    private var connectionStartElapsed = 0L
+
+    /** Previous tick's total TX bytes (system-wide) for traffic delta calculation. */
+    private var lastTotalTx = 0L
+
+    /** Previous tick's total RX bytes (system-wide) for traffic delta calculation. */
+    private var lastTotalRx = 0L
+
     /**
-     * Starts the speed notification.
-     * @param currentConfig The current profile configuration.
+     * Call this when the VPN connection is established to start the uptime counter.
+     */
+    fun markConnectionStarted() {
+        connectionStartElapsed = SystemClock.elapsedRealtime()
+        // Reset traffic baseline for the new connection
+        lastTotalTx = 0L
+        lastTotalRx = 0L
+    }
+
+    /**
+     * Starts the notification updater that shows live traffic, uptime, and proxy status.
+     * Runs always (no longer gated by PREF_SPEED_ENABLED).
      */
     fun startSpeedNotification() {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_SPEED_ENABLED) != true) return
         if (speedNotificationJob != null || CoreServiceManager.isRunning() == false) return
 
         var lastZeroSpeed = false
@@ -58,47 +84,65 @@ object NotificationManager {
     }
 
     /**
-     * Shows the notification.
-     * @param currentConfig The current profile configuration.
+     * Creates and shows the initial VPN foreground notification.
      */
     fun showNotification(currentConfig: ProfileItem?) {
         val service = getService() ?: return
 
-        // Reset last query time to avoid querying stats too soon after showing the notification
+        // Reset last query time and mark connection start
         lastQueryTime = System.currentTimeMillis()
+        markConnectionStarted()
 
         val flags = PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
 
         val startMainIntent = Intent(service, MainActivity::class.java)
-        val contentPendingIntent = PendingIntent.getActivity(service, NOTIFICATION_PENDING_INTENT_CONTENT, startMainIntent, flags)
+        val contentPendingIntent = PendingIntent.getActivity(
+            service, NOTIFICATION_PENDING_INTENT_CONTENT, startMainIntent, flags
+        )
 
         val stopV2RayIntent = Intent(AppConfig.BROADCAST_ACTION_SERVICE)
         stopV2RayIntent.`package` = AppConfig.ANG_PACKAGE
         stopV2RayIntent.putExtra("key", AppConfig.MSG_STATE_STOP)
-        val stopV2RayPendingIntent = PendingIntent.getBroadcast(service, NOTIFICATION_PENDING_INTENT_STOP_V2RAY, stopV2RayIntent, flags)
+        val stopV2RayPendingIntent = PendingIntent.getBroadcast(
+            service, NOTIFICATION_PENDING_INTENT_STOP_V2RAY, stopV2RayIntent, flags
+        )
 
         val restartV2RayIntent = Intent(AppConfig.BROADCAST_ACTION_SERVICE)
         restartV2RayIntent.`package` = AppConfig.ANG_PACKAGE
         restartV2RayIntent.putExtra("key", AppConfig.MSG_STATE_RESTART)
-        val restartV2RayPendingIntent = PendingIntent.getBroadcast(service, NOTIFICATION_PENDING_INTENT_RESTART_V2RAY, restartV2RayIntent, flags)
+        val restartV2RayPendingIntent = PendingIntent.getBroadcast(
+            service, NOTIFICATION_PENDING_INTENT_RESTART_V2RAY, restartV2RayIntent, flags
+        )
 
-        val channelId =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                createNotificationChannel()
-            } else {
-                // If earlier version channel ID is not used
-                // https://developer.android.com/reference/android/support/v4/app/NotificationCompat.Builder.html#NotificationCompat.Builder(android.content.Context)
-                ""
-            }
+        // Intent to open Per-App Proxy settings directly
+        val perAppIntent = Intent(service, PerAppProxyActivity::class.java)
+        perAppIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        val perAppPendingIntent = PendingIntent.getActivity(
+            service, NOTIFICATION_PENDING_INTENT_PER_APP, perAppIntent, flags
+        )
+
+        val channelId = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            createNotificationChannel(service)
+        } else {
+            ""
+        }
 
         mBuilder = NotificationCompat.Builder(service, channelId)
             .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle(currentConfig?.remarks)
-            .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.app_name))
+            .setContentText(buildContentText(service))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(buildBigText(service)))
+            .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)
             .setOnlyAlertOnce(true)
+            .setColor(ALFREDO_PURPLE)
             .setContentIntent(contentPendingIntent)
+            .addAction(
+                R.drawable.ic_description_24dp,
+                service.getString(R.string.notification_action_proxy_apps),
+                perAppPendingIntent
+            )
             .addAction(
                 R.drawable.ic_delete_24dp,
                 service.getString(R.string.notification_action_stop_v2ray),
@@ -110,13 +154,11 @@ object NotificationManager {
                 restartV2RayPendingIntent
             )
 
-        //mBuilder?.setDefaults(NotificationCompat.FLAG_ONLY_ALERT_ONCE)
-
         service.startForeground(NOTIFICATION_ID, mBuilder?.build())
     }
 
     /**
-     * Cancels the notification.
+     * Cancels the notification and stops the updater.
      */
     fun cancelNotification() {
         val service = getService() ?: return
@@ -126,10 +168,11 @@ object NotificationManager {
         speedNotificationJob?.cancel()
         speedNotificationJob = null
         mNotificationManager = null
+        connectionStartElapsed = 0L
     }
 
     /**
-     * Stops the speed notification.
+     * Stops the notification updater without removing the notification.
      */
     fun stopSpeedNotification() {
         speedNotificationJob?.let {
@@ -139,30 +182,205 @@ object NotificationManager {
         }
     }
 
-    /**
-     * Creates a notification channel for Android O and above.
-     * @return The channel ID.
-     */
+    // ====== Channel setup ======
+
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun createNotificationChannel(): String {
+    private fun createNotificationChannel(context: Context): String {
         val channelId = AppConfig.RAY_NG_CHANNEL_ID
         val channelName = AppConfig.RAY_NG_CHANNEL_NAME
-        val chan = NotificationChannel(
-            channelId,
-            channelName, NotificationManager.IMPORTANCE_HIGH
-        )
-        chan.lightColor = Color.DKGRAY
-        chan.importance = NotificationManager.IMPORTANCE_NONE
+        val existingChannel = getNotificationManager()?.getNotificationChannel(channelId)
+        if (existingChannel != null) return channelId
+
+        val chan = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
+        chan.importance = NotificationManager.IMPORTANCE_LOW
+        chan.lightColor = ALFREDO_PURPLE
         chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+        chan.setShowBadge(false)
         getNotificationManager()?.createNotificationChannel(chan)
         return channelId
     }
 
+    // ====== Content builders ======
+
     /**
-     * Updates the notification with the given content text and traffic data.
-     * @param contentText The content text.
-     * @param proxyTraffic The proxy traffic.
-     * @param directTraffic The direct traffic.
+     * Builds the condensed one-line content text for the notification.
+     */
+    private fun buildContentText(context: Context): String {
+        val appsInfo = getPerAppInfo(context)
+        return context.getString(R.string.notification_content_connected, appsInfo)
+    }
+
+    /**
+     * Builds the expanded BigText content with full details.
+     */
+    private fun buildBigText(context: Context): String {
+        val sb = StringBuilder()
+
+        // Uptime
+        sb.append(context.getString(R.string.notification_uptime, getUptimeString()))
+        sb.append("\n")
+
+        // Per-app info
+        sb.append(getPerAppInfo(context))
+        sb.append("\n")
+
+        // Routing info
+        sb.append(getRoutingInfo(context))
+        sb.append("\n")
+
+        // Traffic headers (filled in by the updater)
+        sb.append(context.getString(R.string.notification_traffic_loading))
+
+        return sb.toString()
+    }
+
+    /**
+     * Returns a formatted uptime string since the connection started.
+     */
+    private fun getUptimeString(): String {
+        if (connectionStartElapsed == 0L) return "0s"
+        val elapsedMs = SystemClock.elapsedRealtime() - connectionStartElapsed
+        val totalSec = elapsedMs / 1000
+        val hours = totalSec / 3600
+        val minutes = (totalSec % 3600) / 60
+        val seconds = totalSec % 60
+        return when {
+            hours > 0 -> "${hours}h ${minutes}m"
+            minutes > 0 -> "${minutes}m ${seconds}s"
+            else -> "${seconds}s"
+        }
+    }
+
+    /**
+     * Returns per-app proxy status description.
+     */
+    private fun getPerAppInfo(context: Context): String {
+        val enabled = MmkvManager.decodeSettingsBool(AppConfig.PREF_PER_APP_PROXY)
+        if (enabled != true) {
+            return context.getString(R.string.notification_per_app_disabled)
+        }
+        val apps = MmkvManager.decodeSettingsStringSet(AppConfig.PREF_PER_APP_PROXY_SET)
+        val count = apps?.size ?: 0
+        return when {
+            count == 0 -> context.getString(R.string.notification_per_app_no_apps)
+            else -> context.getString(R.string.notification_per_app_count, count)
+        }
+    }
+
+    /**
+     * Returns routing mode description.
+     */
+    private fun getRoutingInfo(context: Context): String {
+        val rulesets = MmkvManager.decodeRoutingRulesets()
+        if (rulesets.isNullOrEmpty()) return ""
+        val hasRussiaBypass = rulesets.any { rule ->
+            rule.enabled && rule.domain?.contains("category-ru") == true
+        }
+        val hasChinaBypass = rulesets.any { rule ->
+            rule.enabled && rule.domain?.contains("geosite:cn") == true
+        }
+        return when {
+            hasRussiaBypass -> context.getString(R.string.notification_routing_russia)
+            hasChinaBypass -> context.getString(R.string.notification_routing_china)
+            else -> context.getString(R.string.notification_routing_global)
+        }
+    }
+
+    /**
+     * Formats a single speed line for the notification.
+     */
+    private fun formatSpeedLine(tag: String, up: Double, down: Double): String {
+        val label = tag.take(min(tag.length, 6))
+        return "$label  ↑ ${up.toLong().toSpeedString()}  ↓ ${down.toLong().toSpeedString()}"
+    }
+
+    // ====== Notification updater ======
+
+    /**
+     * Builds the BigText for a live update, replacing the placeholder traffic line.
+     */
+    private fun buildBigTextForUpdate(context: Context, contentText: String?): String {
+        val sb = StringBuilder()
+
+        // Uptime
+        sb.append(context.getString(R.string.notification_uptime, getUptimeString()))
+        sb.append("\n")
+
+        // Per-app info
+        sb.append(getPerAppInfo(context))
+        sb.append("\n")
+
+        // Routing info
+        sb.append(getRoutingInfo(context))
+
+        // Traffic data
+        if (!contentText.isNullOrBlank()) {
+            sb.append("\n")
+            sb.append(contentText)
+        }
+
+        return sb.toString()
+    }
+
+    /**
+     * Queries traffic stats and updates the notification with live data.
+     * Always updates full content every tick (uptime, per-app, routing, traffic).
+     */
+    private fun updateSpeedNotificationOnce(lastZeroSpeed: Boolean): Boolean {
+        val queryTime = System.currentTimeMillis()
+        val sinceLastQueryIn = (queryTime - lastQueryTime)
+
+        if (sinceLastQueryIn < QUERY_INTERVAL_MS) {
+            LogUtil.w(AppConfig.TAG, "Query interval too short: ${sinceLastQueryIn}ms, skipping")
+            lastQueryTime = queryTime
+            return lastZeroSpeed
+        }
+        val sinceLastQueryInSeconds = sinceLastQueryIn / 1000.0
+
+        // Use Android TrafficStats to measure total bytes since boot.
+        // When VPN is active, all device traffic routes through the TUN interface,
+        // so system-wide bytes ≈ VPN traffic.
+        val currentTx = TrafficStats.getTotalTxBytes()
+        val currentRx = TrafficStats.getTotalRxBytes()
+
+        // On the first tick we only record the baseline.
+        if (lastTotalTx == 0L && lastTotalRx == 0L) {
+            lastTotalTx = currentTx
+            lastTotalRx = currentRx
+            lastQueryTime = queryTime
+            return true  // first tick = "zero speed"
+        }
+
+        val txDelta = currentTx - lastTotalTx
+        val rxDelta = currentRx - lastTotalRx
+
+        lastTotalTx = currentTx
+        lastTotalRx = currentRx
+
+        Log.i(AppConfig.TAG, "NTF txDelta=$txDelta rxDelta=$rxDelta")
+
+        // Build traffic lines — both counted as proxy traffic since we can't
+        // easily split proxy vs direct at the system level.
+        val speedText = StringBuilder()
+        speedText.append(formatSpeedLine(
+            AppConfig.TAG_PROXY,
+            txDelta / sinceLastQueryInSeconds,
+            rxDelta / sinceLastQueryInSeconds,
+        ))
+        speedText.append("\n")
+        speedText.append(formatSpeedLine(
+            AppConfig.TAG_DIRECT,
+            0.0,
+            0.0,
+        ))
+        updateNotification(speedText.toString(), txDelta + rxDelta, 0L)
+
+        lastQueryTime = queryTime
+        return txDelta + rxDelta == 0L
+    }
+
+    /**
+     * Updates the notification's big text, content text, and icon with the latest data.
      */
     private fun updateNotification(contentText: String?, proxyTraffic: Long, directTraffic: Long) {
         if (mBuilder != null) {
@@ -173,16 +391,19 @@ object NotificationManager {
             } else {
                 mBuilder?.setSmallIcon(R.drawable.ic_stat_direct)
             }
-            mBuilder?.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
-            mBuilder?.setContentText(contentText)
+
+            val context = getService() ?: return
+            val bigText = buildBigTextForUpdate(context, contentText)
+            mBuilder?.setStyle(NotificationCompat.BigTextStyle().bigText(bigText))
+            mBuilder?.setContentText(
+                context.getString(R.string.notification_content_connected, getPerAppInfo(context))
+            )
             getNotificationManager()?.notify(NOTIFICATION_ID, mBuilder?.build())
         }
     }
 
-    /**
-     * Gets the notification manager.
-     * @return The notification manager.
-     */
+    // ====== Helpers ======
+
     private fun getNotificationManager(): NotificationManager? {
         if (mNotificationManager == null) {
             val service = getService() ?: return null
@@ -191,90 +412,6 @@ object NotificationManager {
         return mNotificationManager
     }
 
-    /**
-     * Appends the speed string to the given text.
-     * @param text The text to append to.
-     * @param name The name of the tag.
-     * @param up The uplink speed.
-     * @param down The downlink speed.
-     */
-    private fun appendSpeedString(text: StringBuilder, name: String?, up: Double, down: Double) {
-        var n = name ?: "no tag"
-        n = n.take(min(n.length, 6))
-        text.append(n)
-        for (i in n.length..6 step 2) {
-            text.append("\t")
-        }
-        text.append("•  ${up.toLong().toSpeedString()}↑  ${down.toLong().toSpeedString()}↓\n")
-    }
-
-    /**
-     * Updates the speed notification once.
-     * Queries traffic stats, separates proxy and direct, and updates the notification.
-     * @param lastZeroSpeed The previous zero speed state.
-     * @return The current zero speed state.
-     */
-    private fun updateSpeedNotificationOnce(lastZeroSpeed: Boolean): Boolean {
-        val queryTime = System.currentTimeMillis()
-        val sinceLastQueryIn = (queryTime - lastQueryTime)
-
-        // If the query interval is too short, skip this round to avoid excessive CPU usage
-        if (sinceLastQueryIn < QUERY_INTERVAL_MS) {
-            LogUtil.w(AppConfig.TAG, "Query interval too short: ${sinceLastQueryIn}ms, skipping")
-            lastQueryTime = queryTime
-            return lastZeroSpeed
-        }
-        val sinceLastQueryInSeconds = sinceLastQueryIn / 1000.0
-
-        var proxyUplink = 0L
-        var proxyDownlink = 0L
-        var directUplink = 0L
-        var directDownlink = 0L
-
-        CoreServiceManager.queryAllOutboundTrafficStats().forEach { stat ->
-            when {
-                stat.tag == AppConfig.TAG_DIRECT -> {
-                    when (stat.direction) {
-                        AppConfig.UPLINK -> directUplink += stat.value
-                        AppConfig.DOWNLINK -> directDownlink += stat.value
-                    }
-                }
-
-                stat.tag.startsWith(AppConfig.TAG_PROXY) -> {
-                    when (stat.direction) {
-                        AppConfig.UPLINK -> proxyUplink += stat.value
-                        AppConfig.DOWNLINK -> proxyDownlink += stat.value
-                    }
-                }
-            }
-        }
-
-        val proxyTotal = proxyUplink + proxyDownlink
-        val directTotal = directUplink + directDownlink
-        val zeroSpeed = proxyTotal + directTotal == 0L
-        if (!zeroSpeed || !lastZeroSpeed) {
-            val text = StringBuilder()
-            appendSpeedString(
-                text, AppConfig.TAG_PROXY,
-                proxyUplink / sinceLastQueryInSeconds,
-                proxyDownlink / sinceLastQueryInSeconds
-            )
-
-            appendSpeedString(
-                text, AppConfig.TAG_DIRECT,
-                directUplink / sinceLastQueryInSeconds,
-                directDownlink / sinceLastQueryInSeconds
-            )
-            updateNotification(text.toString(), proxyTotal, directTotal)
-        }
-        lastQueryTime = queryTime
-        return zeroSpeed
-    }
-
-    /**
-     * Gets the service instance.
-     * @return The service instance.
-     */
     private fun getService(): Service? {
         return CoreServiceManager.serviceControl?.get()?.getService()
     }

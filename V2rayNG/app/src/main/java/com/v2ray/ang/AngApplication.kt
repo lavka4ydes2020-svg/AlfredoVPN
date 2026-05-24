@@ -6,11 +6,14 @@ import androidx.work.Configuration
 import androidx.work.WorkManager
 import com.tencent.mmkv.MMKV
 import com.v2ray.ang.AppConfig.ANG_PACKAGE
+import com.v2ray.ang.fmt.VlessFmt
+import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
 
 class AngApplication : MultiDexApplication() {
     companion object {
         lateinit var application: AngApplication
+        private const val PREF_PREINSTALLED_SERVER = "pref_preinstalled_server"
     }
 
     /**
@@ -34,6 +37,9 @@ class AngApplication : MultiDexApplication() {
 
         MMKV.initialize(this)
 
+        // Initialize encrypted storage for sensitive server credentials
+        EncryptedPrefsManager.init(this)
+
         // Initialize WorkManager with the custom configuration
         WorkManager.initialize(this, workManagerConfiguration)
 
@@ -41,8 +47,41 @@ class AngApplication : MultiDexApplication() {
         SettingsManager.initApp(this)
         SettingsManager.setNightMode()
 
+        // Install pre-configured server profile on first launch
+        installDefaultServer()
+
         es.dmoral.toasty.Toasty.Config.getInstance()
             .setGravity(android.view.Gravity.BOTTOM, 0, 300)
             .apply()
+    }
+
+    /**
+     * Installs the default VLESS+Reality server profile on first app launch.
+     * Parses the VLESS link and saves it as a pre-installed server.
+     */
+    private fun installDefaultServer() {
+        if (MmkvManager.decodeSettingsBool(PREF_PREINSTALLED_SERVER, false)) {
+            return // Already installed
+        }
+
+        try {
+            val vlessLink = "vless://6f168bb6-cbf3-4c9d-b60f-d6873a216e42@79.137.202.148:443?encryption=none&security=reality&sni=www.bing.com&fp=chrome&pbk=tBXxynar6xznGkpe8wPPYgF43hfg1k5wo7eUIXnDFA4&sid=912b3d132f4e9fbb&type=tcp&flow=xtls-rprx-vision#Alfredo-VPN"
+
+            val profile = VlessFmt.parse(vlessLink) ?: return
+            profile.subscriptionId = AppConfig.DEFAULT_SUBSCRIPTION_ID
+
+            // Save the profile
+            val guid = MmkvManager.encodeServerConfig("", profile)
+
+            // Select it as the current server
+            MmkvManager.setSelectServer(guid)
+
+            // Mark as installed
+            MmkvManager.encodeSettings(PREF_PREINSTALLED_SERVER, true)
+
+            android.util.Log.i(AppConfig.TAG, "Pre-installed Alfredo VPN server profile added successfully")
+        } catch (e: Exception) {
+            android.util.Log.e(AppConfig.TAG, "Failed to install default server profile", e)
+        }
     }
 }

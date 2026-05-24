@@ -318,26 +318,14 @@ object CoreServiceManager {
      */
     fun queryAllOutboundTrafficStats(): List<OutboundTrafficStat> {
         val payload = coreController.queryAllOutboundTrafficStats()
-
         val result = ArrayList<OutboundTrafficStat>()
-
         payload.split(';').forEach { entry ->
             if (entry.isBlank()) return@forEach
-
             val parts = entry.split(',', limit = 3)
             if (parts.size != 3) return@forEach
-
             val value = parts[2].toLongOrNull() ?: return@forEach
-
-            result.add(
-                OutboundTrafficStat(
-                    tag = parts[0],
-                    direction = parts[1],
-                    value = value,
-                )
-            )
+            result.add(OutboundTrafficStat(tag = parts[0], direction = parts[1], value = value))
         }
-//        LogUtil.d(AppConfig.TAG, "Queried outbound traffic stats: $result")
         return result
     }
 
