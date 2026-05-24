@@ -32,7 +32,8 @@ jobs:
 
     - name: Install platform 37
       run: |
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" > /dev/null 2>&1
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-37" || true
+        echo "Platform 37 check: $(ls $ANDROID_HOME/platforms/ 2>/dev/null | grep android-37 || echo 'NOT FOUND')"
 
     - name: Install NDK r27c (for HEV Tunnel)
       run: |
