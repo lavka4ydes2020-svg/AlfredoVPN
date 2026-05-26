@@ -108,8 +108,7 @@ class CheckUpdateActivity : BaseActivity() {
                     showUpToDate()
                 }
             } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "Failed to check for updates: ${e.message}")
-                toastError(e.message ?: getString(R.string.toast_failure))
+                LogUtil.e(AppConfig.TAG, "Update check failed: ${e.message}")
                 showUpToDate()
             }
         }
