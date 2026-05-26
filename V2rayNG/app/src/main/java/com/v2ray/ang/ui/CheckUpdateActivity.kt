@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.view.View
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
@@ -37,6 +38,14 @@ class CheckUpdateActivity : BaseActivity() {
     private var pendingDownloadId: Long = -1L
     private var pendingVersion: String? = null
     private var downloadPollingJob: Job? = null
+
+    // Launcher for install permission result
+    private val installPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        // User returned from settings — try install again
+        installApkInternal()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -332,6 +341,22 @@ class CheckUpdateActivity : BaseActivity() {
     }
 
     private fun installApk() {
+        // Check install permission first — before any UI change
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            if (!packageManager.canRequestPackageInstalls()) {
+                toast(R.string.update_allow_install_unknown)
+                val settingsIntent = Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:${BuildConfig.APPLICATION_ID}")
+                )
+                installPermissionLauncher.launch(settingsIntent)
+                return
+            }
+        }
+        installApkInternal()
+    }
+
+    private fun installApkInternal() {
         showInstallingState()
         try {
             val version = pendingVersion ?: return
@@ -341,19 +366,6 @@ class CheckUpdateActivity : BaseActivity() {
                 LogUtil.e(AppConfig.TAG, "Downloaded APK not found: ${file.absolutePath}")
                 toastError(getString(R.string.toast_failure))
                 return
-            }
-
-            // Check install permission
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                if (!packageManager.canRequestPackageInstalls()) {
-                    toast(R.string.update_allow_install_unknown)
-                    val settingsIntent = Intent(
-                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:${BuildConfig.APPLICATION_ID}")
-                    )
-                    startActivity(settingsIntent)
-                    return
-                }
             }
 
             val fileProviderUri = FileProvider.getUriForFile(
