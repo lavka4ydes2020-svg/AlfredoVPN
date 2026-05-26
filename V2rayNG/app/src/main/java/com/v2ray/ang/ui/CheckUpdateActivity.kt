@@ -1,10 +1,9 @@
 package com.v2ray.ang.ui
 
 import android.app.DownloadManager
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
+import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -13,7 +12,6 @@ import android.view.View
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.card.MaterialCardView
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
@@ -22,10 +20,12 @@ import com.v2ray.ang.databinding.ActivityCheckUpdateBinding
 import com.v2ray.ang.dto.CheckUpdateResult
 import com.v2ray.ang.extension.toast
 import com.v2ray.ang.extension.toastError
-import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.UpdateCheckerManager
 import com.v2ray.ang.util.LogUtil
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -35,17 +35,7 @@ class CheckUpdateActivity : BaseActivity() {
 
     private var pendingDownloadId: Long = -1L
     private var pendingVersion: String? = null
-
-    private val downloadReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1L)
-            if (id == pendingDownloadId && id != -1L) {
-                installApk()
-                pendingDownloadId = -1L
-                pendingVersion = null
-            }
-        }
-    }
+    private var downloadPollingJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,19 +44,6 @@ class CheckUpdateActivity : BaseActivity() {
             showHomeAsUp = true,
             title = getString(R.string.update_check_for_update)
         )
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(
-                downloadReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                Context.RECEIVER_EXPORTED
-            )
-        } else {
-            registerReceiver(
-                downloadReceiver,
-                IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
-            )
-        }
 
         binding.checkPreRelease.setOnCheckedChangeListener { _, isChecked ->
             MmkvManager.encodeSettings(AppConfig.PREF_CHECK_UPDATE_PRE_RELEASE, isChecked)
@@ -92,7 +69,7 @@ class CheckUpdateActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(downloadReceiver)
+        downloadPollingJob?.cancel()
     }
 
     private var pendingDownloadUrl: String? = null
@@ -123,6 +100,7 @@ class CheckUpdateActivity : BaseActivity() {
             tvStatusSubtitle.text = getString(R.string.update_checking_subtitle)
             layoutVersion.visibility = View.GONE
             tvChangelog.visibility = View.GONE
+            layoutDownloadProgress.visibility = View.GONE
             btnDownload.visibility = View.GONE
             cardStatus.setCardBackgroundColor(
                 ContextCompat.getColor(this@CheckUpdateActivity, R.color.md_theme_secondaryContainer)
@@ -147,6 +125,7 @@ class CheckUpdateActivity : BaseActivity() {
             tvLibVersion.text = getString(R.string.update_lib_format, CoreNativeManager.getLibVersion())
             layoutVersion.visibility = View.VISIBLE
             tvChangelog.visibility = View.GONE
+            layoutDownloadProgress.visibility = View.GONE
             btnDownload.visibility = View.GONE
             cardStatus.setCardBackgroundColor(
                 ContextCompat.getColor(this@CheckUpdateActivity, R.color.update_card_green)
@@ -178,10 +157,83 @@ class CheckUpdateActivity : BaseActivity() {
             } else {
                 tvChangelog.visibility = View.GONE
             }
+            layoutDownloadProgress.visibility = View.GONE
             btnDownload.visibility = View.VISIBLE
             cardStatus.setCardBackgroundColor(
                 ContextCompat.getColor(this@CheckUpdateActivity, R.color.update_card_amber)
             )
+        }
+    }
+
+    private fun showDownloadingState() {
+        with(binding) {
+            progressChecking.visibility = View.GONE
+            iconStatus.visibility = View.VISIBLE
+            iconStatus.setImageResource(R.drawable.ic_check_update_24dp)
+            iconStatus.imageTintList = ContextCompat.getColorStateList(
+                this@CheckUpdateActivity, R.color.amber_700
+            )
+            tvStatusTitle.text = getString(R.string.update_downloading_title)
+            tvStatusTitle.setTextColor(
+                ContextCompat.getColor(this@CheckUpdateActivity, R.color.amber_700)
+            )
+            tvStatusSubtitle.text = getString(R.string.update_downloading_subtitle)
+            layoutVersion.visibility = View.GONE
+            tvChangelog.visibility = View.GONE
+            btnDownload.visibility = View.GONE
+            layoutDownloadProgress.visibility = View.VISIBLE
+            progressDownload.progress = 0
+            tvDownloadProgress.text = "0%"
+            cardStatus.setCardBackgroundColor(
+                ContextCompat.getColor(this@CheckUpdateActivity, R.color.update_card_amber)
+            )
+        }
+    }
+
+    private fun updateDownloadProgress(percent: Int, bytesDownloaded: Long, totalBytes: Long) {
+        with(binding) {
+            progressDownload.progress = percent
+            val mbDownloaded = bytesDownloaded / (1024.0 * 1024.0)
+            val mbTotal = totalBytes / (1024.0 * 1024.0)
+            tvDownloadProgress.text = getString(
+                R.string.update_download_progress_format,
+                percent,
+                String.format("%.1f", mbDownloaded),
+                String.format("%.1f", mbTotal)
+            )
+        }
+    }
+
+    private fun showInstallingState() {
+        with(binding) {
+            layoutDownloadProgress.visibility = View.GONE
+            progressChecking.visibility = View.GONE
+            iconStatus.visibility = View.VISIBLE
+            iconStatus.setImageResource(R.drawable.ic_fab_check)
+            iconStatus.imageTintList = ContextCompat.getColorStateList(
+                this@CheckUpdateActivity, R.color.amber_700
+            )
+            tvStatusTitle.text = getString(R.string.update_installing)
+            tvStatusTitle.setTextColor(
+                ContextCompat.getColor(this@CheckUpdateActivity, R.color.amber_700)
+            )
+            tvStatusSubtitle.text = ""
+            tvChangelog.visibility = View.GONE
+            btnDownload.visibility = View.GONE
+        }
+    }
+
+    private fun showDownloadError() {
+        with(binding) {
+            layoutDownloadProgress.visibility = View.GONE
+            btnDownload.visibility = View.VISIBLE
+            progressChecking.visibility = View.GONE
+            iconStatus.visibility = View.GONE
+            tvStatusTitle.text = getString(R.string.update_download_failed)
+            tvStatusTitle.setTextColor(
+                ContextCompat.getColor(this@CheckUpdateActivity, android.R.color.holo_red_dark)
+            )
+            tvStatusSubtitle.text = getString(R.string.update_tap_retry)
         }
     }
 
@@ -206,14 +258,65 @@ class CheckUpdateActivity : BaseActivity() {
 
             pendingDownloadId = dm.enqueue(request)
             pendingVersion = version
-            toast(R.string.update_download_started_tap_notification)
+
+            showDownloadingState()
+            startDownloadPolling(dm)
+
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to start download: ${e.message}")
             toastError(e.message ?: getString(R.string.toast_failure))
         }
     }
 
+    private fun startDownloadPolling(dm: DownloadManager) {
+        downloadPollingJob?.cancel()
+        downloadPollingJob = lifecycleScope.launch {
+            while (isActive) {
+                delay(300)
+                val cursor: Cursor = try {
+                    val query = DownloadManager.Query().setFilterById(pendingDownloadId)
+                    dm.query(query)
+                } catch (e: Exception) {
+                    null
+                } ?: continue
+
+                if (cursor.moveToFirst()) {
+                    val status = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS)
+                    )
+                    val bytesDownloaded = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR)
+                    )
+                    val totalBytes = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(DownloadManager.COLUMN_TOTAL_SIZE_BYTES)
+                    )
+
+                    when (status) {
+                        DownloadManager.STATUS_SUCCESSFUL -> {
+                            cursor.close()
+                            installApk()
+                            return@launch
+                        }
+                        DownloadManager.STATUS_FAILED -> {
+                            cursor.close()
+                            showDownloadError()
+                            return@launch
+                        }
+                        DownloadManager.STATUS_RUNNING -> {
+                            if (totalBytes > 0) {
+                                val percent = ((bytesDownloaded * 100) / totalBytes).toInt()
+                                updateDownloadProgress(percent, bytesDownloaded, totalBytes)
+                            }
+                        }
+                    }
+                }
+                cursor.close()
+            }
+        }
+    }
+
     private fun installApk() {
+        showInstallingState()
         try {
             val version = pendingVersion ?: return
             val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)

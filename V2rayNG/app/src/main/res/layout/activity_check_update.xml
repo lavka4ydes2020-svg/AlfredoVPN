@@ -114,6 +114,35 @@
                     android:textColor="@color/md_theme_onSurfaceVariant"
                     android:visibility="gone" />
 
+                <!-- Download progress bar (downloading state) -->
+                <LinearLayout
+                    android:id="@+id/layout_download_progress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <ProgressBar
+                        android:id="@+id/progress_download"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="8dp"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressTint="#E65100" />
+
+                    <TextView
+                        android:id="@+id/tv_download_progress"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+                        android:textColor="@color/md_theme_onSurfaceVariant" />
+
+                </LinearLayout>
+
                 <!-- Download button (update state) -->
                 <Button
                     android:id="@+id/btn_download"

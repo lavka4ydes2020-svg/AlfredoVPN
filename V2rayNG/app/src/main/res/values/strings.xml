@@ -410,7 +410,12 @@
     <string name="update_auto_check">Auto-check at startup</string>
     <string name="update_downloading">Downloading update…</string>
     <string name="update_download_started">Download started</string>
-    <string name="update_download_started_tap_notification">Download started. Tap the notification when complete to install.</string>
+    <string name="update_downloading_title">Downloading update</string>
+    <string name="update_downloading_subtitle">Please keep the app open</string>
+    <string name="update_download_progress_format">%d%% (%.1f / %.1f MB)</string>
+    <string name="update_installing">Installing…</string>
+    <string name="update_download_failed">Download failed</string>
+    <string name="update_tap_retry">Tap Download to try again</string>
     <string name="update_checking_title">Checking for updates…</string>
     <string name="update_checking_subtitle">Looking for new version on GitHub</string>
     <string name="update_up_to_date">Up to date</string>
