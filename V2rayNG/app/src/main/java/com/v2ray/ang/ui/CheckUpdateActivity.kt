@@ -43,13 +43,16 @@ class CheckUpdateActivity : BaseActivity() {
     private var pendingVersion: String? = null
     private var downloadPollingJob: Job? = null
     private val downloadScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private var isDownloading = false
 
-    // Launcher for install permission result
+    // Launcher for install permission — does NOT install directly on return.
+    // Instead resumes polling to check actual download status.
     private val installPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        // User returned from settings — try install again
-        installApkInternal()
+        // User returned from settings — resume polling to check real download status
+        val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        startDownloadPolling(dm)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +77,7 @@ class CheckUpdateActivity : BaseActivity() {
             MmkvManager.decodeSettingsBool(AppConfig.PREF_AUTO_CHECK_UPDATE, true)
 
         binding.btnDownload.setOnClickListener {
+            if (isDownloading) return@setOnClickListener
             pendingDownloadUrl?.let { url ->
                 downloadAndInstall(url, pendingVersion ?: "")
             }
@@ -184,6 +188,7 @@ class CheckUpdateActivity : BaseActivity() {
     private fun showDownloadingState() {
         // Keep screen on during download
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        isDownloading = true
         with(binding) {
             progressChecking.visibility = View.GONE
             iconStatus.visibility = View.VISIBLE
@@ -212,7 +217,6 @@ class CheckUpdateActivity : BaseActivity() {
     private fun updateDownloadProgress(percent: Int, bytesDownloaded: Long, totalBytes: Long) {
         with(binding) {
             if (percent < 0) {
-                // Size not yet known — indeterminate spinner
                 progressDownload.isIndeterminate = true
                 val mbDownloaded = bytesDownloaded / (1024.0 * 1024.0)
                 tvDownloadProgress.text = getString(
@@ -236,6 +240,7 @@ class CheckUpdateActivity : BaseActivity() {
 
     private fun showInstallingState() {
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        isDownloading = false
         with(binding) {
             layoutDownloadProgress.visibility = View.GONE
             progressChecking.visibility = View.GONE
@@ -256,6 +261,7 @@ class CheckUpdateActivity : BaseActivity() {
 
     private fun showDownloadError() {
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        isDownloading = false
         with(binding) {
             layoutDownloadProgress.visibility = View.GONE
             btnDownload.visibility = View.VISIBLE
@@ -273,7 +279,15 @@ class CheckUpdateActivity : BaseActivity() {
         try {
             val dm = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-            // Clean old APKs from previous downloads
+            // Remove all old downloads to prevent stale STATUS_SUCCESSFUL
+            val oldCursor = dm.query(DownloadManager.Query())
+            while (oldCursor.moveToNext()) {
+                val oldId = oldCursor.getLong(oldCursor.getColumnIndexOrThrow(DownloadManager.COLUMN_ID))
+                dm.remove(oldId)
+            }
+            oldCursor.close()
+
+            // Clean old APK files
             val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             downloadsDir?.listFiles()?.filter { it.name.endsWith(".apk") }?.forEach { it.delete() }
 
@@ -330,15 +344,21 @@ class CheckUpdateActivity : BaseActivity() {
 
                     when (status) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
-                            cursor.close()
-                            // Verify the file actually exists and matches expected size
-                            val version = pendingVersion ?: ""
-                            val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-                            val file = File(downloadsDir, "AlfredoVPN_${version}.apk")
-                            if (file.exists() && file.length() > 0 && totalBytes > 0 && file.length() >= totalBytes * 0.95) {
-                                installApk()
+                            // Guard: only install if file is fully written
+                            // Use strict check: file size must match totalBytes exactly (within 1%)
+                            // AND totalBytes must be known (>0) AND file must exist
+                            val version = pendingVersion
+                            if (version != null && totalBytes > 0) {
+                                val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                                val file = File(downloadsDir, "AlfredoVPN_${version}.apk")
+                                val expectedSizeMin = (totalBytes * 0.99).toLong()
+                                if (file.exists() && file.length() >= expectedSizeMin) {
+                                    cursor.close()
+                                    installApk()
+                                    return@launch
+                                }
                             }
-                            return@launch
+                            // File not ready — keep polling
                         }
                         DownloadManager.STATUS_FAILED -> {
                             cursor.close()
@@ -350,10 +370,10 @@ class CheckUpdateActivity : BaseActivity() {
                                 val percent = ((bytesDownloaded * 100) / totalBytes).toInt()
                                 updateDownloadProgress(percent, bytesDownloaded, totalBytes)
                             } else {
-                                // Total size not yet known — show indeterminate
                                 updateDownloadProgress(-1, bytesDownloaded, 0)
                             }
                         }
+                        // STATUS_PENDING, STATUS_PAUSED — keep polling silently
                     }
                 }
                 cursor.close()
@@ -378,16 +398,19 @@ class CheckUpdateActivity : BaseActivity() {
     }
 
     private fun installApkInternal() {
-        showInstallingState()
         try {
             val version = pendingVersion ?: return
             val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
             val file = File(downloadsDir, "AlfredoVPN_${version}.apk")
+
+            // Check file BEFORE changing UI
             if (!file.exists()) {
                 LogUtil.e(AppConfig.TAG, "Downloaded APK not found: ${file.absolutePath}")
-                toastError(getString(R.string.toast_failure))
+                showDownloadError()
                 return
             }
+
+            showInstallingState()
 
             val fileProviderUri = FileProvider.getUriForFile(
                 this,
