@@ -326,7 +326,13 @@ class CheckUpdateActivity : BaseActivity() {
                     when (status) {
                         DownloadManager.STATUS_SUCCESSFUL -> {
                             cursor.close()
-                            installApk()
+                            // Verify the file actually exists and matches expected size
+                            val version = pendingVersion ?: ""
+                            val downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+                            val file = File(downloadsDir, "AlfredoVPN_${version}.apk")
+                            if (file.exists() && file.length() > 0 && totalBytes > 0 && file.length() >= totalBytes * 0.95) {
+                                installApk()
+                            }
                             return@launch
                         }
                         DownloadManager.STATUS_FAILED -> {
