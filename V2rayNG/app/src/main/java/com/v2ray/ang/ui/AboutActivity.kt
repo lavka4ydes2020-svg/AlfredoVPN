@@ -15,17 +15,19 @@ class AboutActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentViewWithToolbar(binding.root, showHomeAsUp = true, title = getString(R.string.title_about))
 
-        binding.layoutTgChannel.setOnClickListener {
+        binding.tileTelegram.setOnClickListener {
             Utils.openUri(this, AppConfig.TG_CHANNEL_URL)
         }
 
-        binding.layoutCheckUpdate.setOnClickListener {
+        binding.tileLogcat.setOnClickListener {
+            startActivity(Intent(this, LogcatActivity::class.java))
+        }
+
+        binding.tileCheckUpdate.setOnClickListener {
             startActivity(Intent(this, CheckUpdateActivity::class.java))
         }
 
-        binding.layoutLogcat.setOnClickListener {
-            startActivity(Intent(this, LogcatActivity::class.java))
-        }
+        binding.tvUpdateVersion.text = getString(R.string.about_update_current, BuildConfig.VERSION_NAME)
 
         binding.tvAboutFooter.text = getString(R.string.about_footer, BuildConfig.VERSION_NAME)
     }

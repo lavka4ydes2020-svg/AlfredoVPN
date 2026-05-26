@@ -8,145 +8,229 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="20dp">
 
-        <!-- Row 1: Telegram-канал -->
+        <!-- ========== App Header ========== -->
         <LinearLayout
-            android:id="@+id/layout_tg_channel"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingVertical="14dp"
-            android:paddingStart="20dp"
-            android:paddingEnd="12dp">
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingBottom="8dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_telegram_24dp"
-                app:tint="@color/md_theme_onSurfaceVariant" />
+                android:id="@+id/iv_about_logo"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:background="@drawable/about_logo_bg"
+                android:padding="14dp"
+                android:scaleType="fitCenter"
+                android:src="@mipmap/ic_launcher" />
 
             <TextView
-                android:layout_width="0dp"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="28dp"
-                android:layout_weight="1"
-                android:text="@string/about_telegram"
-                android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                android:layout_marginTop="8dp"
+                android:text="@string/app_name"
+                android:textAppearance="@style/TextAppearance.AppCompat.Title"
                 android:textColor="@color/md_theme_onSurface" />
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_chevron_right"
-                app:tint="@color/md_theme_onSurfaceVariant" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/about_subtitle"
+                android:textColor="@color/md_theme_outline"
+                android:textSize="12sp" />
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1px"
-            android:layout_marginStart="72dp"
-            android:layout_marginEnd="20dp"
-            android:background="@color/divider_color_light" />
-
-        <!-- Row 2: Проверить обновление -->
+        <!-- ========== Tiles Row 1 ========== -->
         <LinearLayout
-            android:id="@+id/layout_check_update"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:focusable="true"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:paddingVertical="14dp"
-            android:paddingStart="20dp"
-            android:paddingEnd="12dp">
+            android:weightSum="2">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_check_update_24dp"
-                app:tint="@color/md_theme_onSurfaceVariant" />
-
-            <TextView
+            <!-- Telegram Tile -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/tile_telegram"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="28dp"
+                android:layout_margin="6dp"
                 android:layout_weight="1"
-                android:text="@string/about_check_update"
-                android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                android:textColor="@color/md_theme_onSurface" />
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_chevron_right"
-                app:tint="@color/md_theme_onSurfaceVariant" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/tile_icon_circle"
+                        android:backgroundTint="#E3F2FD"
+                        android:padding="12dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_telegram_24dp"
+                        app:tint="#039BE5" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/about_telegram"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                        android:textColor="@color/md_theme_onSurface"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/about_telegram_desc"
+                        android:textColor="@color/md_theme_outline"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Logcat Tile -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/tile_logcat"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_margin="6dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackground"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="@drawable/tile_icon_circle"
+                        android:backgroundTint="#FFF3E0"
+                        android:padding="12dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_logcat_24dp"
+                        app:tint="#FB8C00" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:text="@string/about_logcat"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                        android:textColor="@color/md_theme_onSurface"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/about_logcat_desc"
+                        android:textColor="@color/md_theme_outline"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
         </LinearLayout>
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1px"
-            android:layout_marginStart="72dp"
-            android:layout_marginEnd="20dp"
-            android:background="@color/divider_color_light" />
-
-        <!-- Row 3: Журнал -->
-        <LinearLayout
-            android:id="@+id/layout_logcat"
+        <!-- ========== Tiles Row 2: Check Update (wide) ========== -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/tile_check_update"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
+            android:layout_marginHorizontal="6dp"
+            android:layout_marginVertical="6dp"
             android:clickable="true"
             android:focusable="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingVertical="14dp"
-            android:paddingStart="20dp"
-            android:paddingEnd="12dp">
+            android:foreground="?attr/selectableItemBackground"
+            app:cardBackgroundColor="#F3E5F5"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="2dp">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_logcat_24dp"
-                app:tint="@color/md_theme_onSurfaceVariant" />
-
-            <TextView
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="28dp"
-                android:layout_weight="1"
-                android:text="@string/about_logcat"
-                android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-                android:textColor="@color/md_theme_onSurface" />
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="16dp">
 
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:importantForAccessibility="no"
-                android:src="@drawable/ic_chevron_right"
-                app:tint="@color/md_theme_onSurfaceVariant" />
-        </LinearLayout>
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/tile_icon_circle"
+                    android:backgroundTint="#E1BEE7"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_check_update_24dp"
+                    app:tint="#AB47BC" />
 
-        <!-- Footer -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/about_check_update"
+                        android:ellipsize="end"
+                        android:maxLines="1"
+                        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+                        android:textColor="@color/md_theme_onSurface"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tv_update_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textColor="@color/md_theme_outline"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:importantForAccessibility="no"
+                    android:src="@drawable/ic_chevron_right"
+                    app:tint="#AB47BC" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- ========== Footer ========== -->
         <TextView
             android:id="@+id/tv_about_footer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="12dp"
             android:gravity="center"
-            android:paddingHorizontal="20dp"
-            android:paddingBottom="48dp"
+            android:paddingBottom="32dp"
             android:textColor="@color/md_theme_outline"
             android:textSize="13sp" />
 
