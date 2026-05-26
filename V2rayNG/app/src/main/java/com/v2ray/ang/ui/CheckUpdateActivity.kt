@@ -414,7 +414,7 @@ class CheckUpdateActivity : BaseActivity() {
 
             val fileProviderUri = FileProvider.getUriForFile(
                 this,
-                "${BuildConfig.APPLICATION_ID}.fileprovider",
+                "${BuildConfig.APPLICATION_ID}.cache",
                 file
             )
 
