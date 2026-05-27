@@ -151,11 +151,8 @@ class MainActivity : HelperBaseActivity() {
                 // Show tip about Always-on VPN + Lockdown
                 AlertDialog.Builder(this)
                     .setTitle(R.string.watchdog_always_on_title)
-                    .setMessage(R.string.watchdog_always_on_message)
-                    .setPositiveButton(R.string.watchdog_always_on_button) { _, _ ->
-                        startActivity(Intent(android.provider.Settings.ACTION_VPN_SETTINGS))
-                    }
-                    .setNegativeButton(R.string.watchdog_always_on_later, null)
+                    .setMessage(R.string.watchdog_always_on_manual)
+                    .setPositiveButton(android.R.string.ok, null)
                     .show()
             }
         }
@@ -165,32 +162,10 @@ class MainActivity : HelperBaseActivity() {
         alwaysOnVpn?.setOnCheckedChangeListener { _, isChecked ->
             MmkvManager.encodeAlwaysOnVpn(isChecked)
             if (isChecked) {
-                // Show confirmation dialog before enabling system Always-on VPN
                 AlertDialog.Builder(this)
                     .setTitle(R.string.pref_always_on_vpn_label)
-                    .setMessage(R.string.always_on_vpn_confirm_message)
-                    .setPositiveButton(R.string.always_on_vpn_confirm_yes) { _, _ ->
-                        // VPN must be connected for Always-on to take effect
-                        if (CoreServiceManager.isRunning()) {
-                            // Open system VPN settings where user can toggle "Always-on VPN"
-                            startActivity(Intent(android.provider.Settings.ACTION_VPN_SETTINGS))
-                        } else {
-                            // VPN is not connected — show tip to connect first
-                            AlertDialog.Builder(this)
-                                .setTitle(R.string.always_on_vpn_not_connected_title)
-                                .setMessage(R.string.always_on_vpn_not_connected_message)
-                                .setPositiveButton(android.R.string.ok, null)
-                                .show()
-                        }
-                    }
-                    .setNegativeButton(R.string.always_on_vpn_confirm_no) { _, _ ->
-                        alwaysOnVpn?.isChecked = false
-                        MmkvManager.encodeAlwaysOnVpn(false)
-                    }
-                    .setOnCancelListener {
-                        alwaysOnVpn?.isChecked = false
-                        MmkvManager.encodeAlwaysOnVpn(false)
-                    }
+                    .setMessage(R.string.always_on_vpn_manual_instruction)
+                    .setPositiveButton(android.R.string.ok, null)
                     .show()
             }
         }
@@ -200,7 +175,7 @@ class MainActivity : HelperBaseActivity() {
             val currentMode = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0")
             it.isChecked = currentMode == "2"
             it.setOnCheckedChangeListener { _, isChecked ->
-                MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, if (isChecked) "2" else "0")
+                MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, if (isChecked) "2" else "1")
                 recreate()
             }
         }

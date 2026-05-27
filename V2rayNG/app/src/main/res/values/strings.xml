@@ -180,6 +180,12 @@
     <string name="watchdog_always_on_title">Enable System-Level Kill Switch?</string>
     <string name="watchdog_always_on_message">For maximum protection, also enable \"Always-on VPN\" + \"Block connections without VPN\" in system settings. This way, even if the app is killed, Android itself blocks all traffic.</string>
     <string name="watchdog_always_on_button">Open System VPN Settings</string>
+<string name="watchdog_always_on_manual">To enable system-level Kill Switch manually:
+
+1. Open Android Settings
+2. Go to Connections → VPN
+3. Tap gear icon ⚙️ next to Alfredo VPN
+4. Enable "Always-on VPN" + "Block connections without VPN"</string>
     <string name="watchdog_always_on_later">Later</string>
 
     <!-- Always-on VPN settings -->
@@ -189,6 +195,14 @@
     <string name="always_on_vpn_confirm_yes">Enable</string>
     <string name="always_on_vpn_confirm_no">Cancel</string>
     <string name="always_on_vpn_not_connected_title">VPN Not Connected</string>
+<string name="always_on_vpn_manual_instruction">To enable Always-on VPN manually:
+
+1. Open Android Settings
+2. Go to Connections → VPN
+3. Tap gear icon ⚙️ next to Alfredo VPN
+4. Enable "Always-on VPN"
+
+Tip: also enable "Block connections without VPN" for maximum protection.</string>
     <string name="always_on_vpn_not_connected_message">Connect to VPN first, then enable Always-on VPN.</string>
 
     <string name="menu_item_select_recommended">Recommended</string>

@@ -179,6 +179,12 @@
     <string name="watchdog_always_on_title">Включить системный Kill Switch?</string>
     <string name="watchdog_always_on_message">Для максимальной защиты также включите \"Always-on VPN\" + \"Блокировать подключения без VPN\" в настройках системы. Тогда даже если приложение будет убито системой, Android сам заблокирует трафик.</string>
     <string name="watchdog_always_on_button">Открыть настройки VPN</string>
+<string name="watchdog_always_on_manual">Чтобы включить системный Kill Switch вручную:
+
+1. Откройте Настройки Android
+2. Перейдите в Подключения → VPN
+3. Нажмите на шестерёнку ⚙️ рядом с Alfredo VPN
+4. Включите «Always-on VPN» и «Блокировать без VPN»</string>
     <string name="watchdog_always_on_later">Позже</string>
 
     <!-- Always-on VPN settings -->
@@ -188,6 +194,14 @@
     <string name="always_on_vpn_confirm_yes">Включить</string>
     <string name="always_on_vpn_confirm_no">Отмена</string>
     <string name="always_on_vpn_not_connected_title">VPN не подключён</string>
+<string name="always_on_vpn_manual_instruction">Чтобы включить Always-on VPN вручную:
+
+1. Откройте Настройки Android
+2. Перейдите в Подключения → VPN
+3. Нажмите на шестерёнку ⚙️ рядом с Alfredo VPN
+4. Включите «Always-on VPN»
+
+Совет: также включите «Блокировать подключения без VPN» для максимальной защиты.</string>
     <string name="always_on_vpn_not_connected_message">Сначала подключитесь к VPN, затем включите Always-on VPN.</string>
 
     <string name="menu_item_select_recommended">Рекомендуемые</string>
