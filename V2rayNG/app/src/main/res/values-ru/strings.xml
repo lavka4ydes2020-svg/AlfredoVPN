@@ -605,4 +605,6 @@
     <string name="about_logcat_desc">Диагностика и логи</string>
     <string name="about_update_current">Текущая версия: %s</string>
     <string name="about_server_info">VPN-сервер: Германия, VLESS+Reality\nШифрование: XTLS-RPRX-Vision\nСборка: %1$s · build %2$d</string>
+    <string name="title_server_picker">Выбор сервера</string>
+    <string name="search_server_hint">Поиск сервера…</string>
 </resources>

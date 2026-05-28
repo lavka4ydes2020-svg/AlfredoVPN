@@ -96,7 +96,7 @@ class MainActivity : HelperBaseActivity() {
         // Server card
         binding.cardCurrentServer.setOnClickListener {
             // Scroll to server list or open subscription settings
-            requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
+            requestActivityLauncher.launch(Intent(this, ServerPickerActivity::class.java).putExtra("isRunning", mainViewModel.isRunning.value == true))
         }
 
         // Quick actions
@@ -109,7 +109,7 @@ class MainActivity : HelperBaseActivity() {
 
         // "Change server" link
         binding.btnChangeServerLink.setOnClickListener {
-            requestActivityLauncher.launch(Intent(this, SubSettingActivity::class.java))
+            requestActivityLauncher.launch(Intent(this, ServerPickerActivity::class.java).putExtra("isRunning", mainViewModel.isRunning.value == true))
         }
 
         // Bottom test bar

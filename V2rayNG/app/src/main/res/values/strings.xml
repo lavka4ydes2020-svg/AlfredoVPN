@@ -616,4 +616,6 @@ Tip: also enable "Block connections without VPN" for maximum protection.</string
     <string name="about_update_current">Текущая версия: %s</string>
     <string name="about_server_info">VPN-сервер: Германия, VLESS+Reality\nШифрование: XTLS-RPRX-Vision\nСборка: %1$s · build %2$d</string>
 
+    <string name="title_server_picker">Select Server</string>
+    <string name="search_server_hint">Search server…</string>
 </resources>

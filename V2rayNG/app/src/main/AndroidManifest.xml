@@ -82,6 +82,10 @@
             android:name=".ui.ServerGroupActivity"
             android:exported="false"
             android:windowSoftInputMode="stateUnchanged" />
+
+        <activity
+            android:name=".ui.ServerPickerActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.ServerProxyChainActivity"
             android:exported="false"
