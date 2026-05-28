@@ -24,29 +24,39 @@ class QSTileService : TileService() {
      */
     fun setState(state: Int) {
         qsTile?.icon = Icon.createWithResource(applicationContext, R.drawable.ic_stat_name)
-        if (state == Tile.STATE_INACTIVE) {
-            qsTile?.state = Tile.STATE_INACTIVE
-            qsTile?.label = getString(R.string.app_name)
-        } else if (state == Tile.STATE_ACTIVE) {
-            qsTile?.state = Tile.STATE_ACTIVE
-            qsTile?.label = CoreServiceManager.getRunningServerName()
+        when (state) {
+            Tile.STATE_INACTIVE -> {
+                qsTile?.state = Tile.STATE_INACTIVE
+                qsTile?.label = getString(R.string.app_tile_name)
+            }
+            Tile.STATE_ACTIVE -> {
+                qsTile?.state = Tile.STATE_ACTIVE
+                qsTile?.label = CoreServiceManager.getRunningServerName()
+            }
+            Tile.STATE_UNAVAILABLE -> {
+                qsTile?.state = Tile.STATE_UNAVAILABLE
+                qsTile?.label = getString(R.string.toggle_connecting)
+            }
         }
-
         qsTile?.updateTile()
     }
 
-    /**
-     * Refer to the official documentation for [registerReceiver](https://developer.android.com/reference/androidx/core/content/ContextCompat#registerReceiver(android.content.Context,android.content.BroadcastReceiver,android.content.IntentFilter,int):
-     * `registerReceiver(Context, BroadcastReceiver, IntentFilter, int)`.
-     */
-    override fun onStartListening() {
-        super.onStartListening()
-
+    override fun onTileAdded() {
+        super.onTileAdded()
         if (CoreServiceManager.isRunning()) {
             setState(Tile.STATE_ACTIVE)
         } else {
             setState(Tile.STATE_INACTIVE)
         }
+    }
+
+    /**
+     * Refer to the official documentation for registerReceiver.
+     * `registerReceiver(Context, BroadcastReceiver, IntentFilter, int)`.
+     */
+    override fun onStartListening() {
+        super.onStartListening()
+
         mMsgReceive = ReceiveMessageHandler(this)
         val mFilter = IntentFilter(AppConfig.BROADCAST_ACTION_ACTIVITY)
         ContextCompat.registerReceiver(applicationContext, mMsgReceive, mFilter, Utils.receiverFlags())
@@ -75,9 +85,18 @@ class QSTileService : TileService() {
         super.onClick()
         when (qsTile.state) {
             Tile.STATE_INACTIVE -> {
-                CoreServiceManager.startVServiceFromToggle(this)
+                qsTile?.state = Tile.STATE_UNAVAILABLE
+                qsTile?.updateTile()
+                if (!CoreServiceManager.startVServiceFromToggle(this)) {
+                    qsTile?.state = Tile.STATE_INACTIVE
+                    qsTile?.updateTile()
+                    startActivityAndCollapse(
+                        Intent(this, com.v2ray.ang.ui.MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                    )
+                }
             }
-
             Tile.STATE_ACTIVE -> {
                 CoreServiceManager.stopVService(this)
             }
