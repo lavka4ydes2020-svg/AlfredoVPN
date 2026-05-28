@@ -23,6 +23,7 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.util.AppManagerUtil
 import com.v2ray.ang.util.LogUtil
+import com.google.android.material.color.MaterialColors
 import com.v2ray.ang.viewmodel.PerAppProxyViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,7 +37,6 @@ class PerAppProxyActivity : BaseActivity() {
     private var appsAll: List<AppInfo>? = null
     private val viewModel: PerAppProxyViewModel by viewModels()
 
-    // Filter state
     private var currentFilter = "all"
     private var searchQuery = ""
 
@@ -132,10 +132,10 @@ class PerAppProxyActivity : BaseActivity() {
             "all" to getString(R.string.chip_all),
             "vpn" to getString(R.string.chip_vpn),
             AppInfo.CAT_SOCIAL to getString(R.string.chip_social),
-            AppInfo.CAT_SYSTEM to getString(R.string.chip_system),
             AppInfo.CAT_BROWSER to getString(R.string.chip_browser),
             AppInfo.CAT_MEDIA to getString(R.string.chip_media),
             AppInfo.CAT_GAMES to getString(R.string.chip_games),
+            AppInfo.CAT_SYSTEM to getString(R.string.chip_system),
         )
 
         filters.forEach { (key, label) ->
@@ -147,32 +147,6 @@ class PerAppProxyActivity : BaseActivity() {
             }
             container.addView(chip)
         }
-
-        // Separator line
-        val sep = View(this).apply {
-            layoutParams = ViewGroup.LayoutParams(
-                1.dpToPx(),
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-            setBackgroundColor(0x20FFFFFF.toInt())
-            setPadding(0, 0, 0, 0)
-        }
-        // Actually use margin instead
-        val sepSpacer = View(this).apply {
-            layoutParams = ViewGroup.LayoutParams(12.dpToPx(), 1)
-        }
-        container.addView(sepSpacer)
-
-        // Preset chips
-        addPresetChip(container, "\uD83D\uDCDF ${getString(R.string.chip_preset_messengers)}") {
-            applyPresetMessengers()
-        }
-        addPresetChip(container, "\uD83C\uDFE6 ${getString(R.string.chip_preset_banking)}") {
-            applyPresetBanking()
-        }
-        addPresetChip(container, "\uD83C\uDFB5 ${getString(R.string.chip_preset_media)}") {
-            applyPresetMedia()
-        }
     }
 
     private fun createChipView(label: String, selected: Boolean): TextView {
@@ -182,17 +156,14 @@ class PerAppProxyActivity : BaseActivity() {
             text = label
             textSize = 12f
             setPadding(dp12, 6.dpToPx(), dp12, 6.dpToPx())
-            val marginEnd = if (selected) dp8 else dp8
-            val lp = ViewGroup.MarginLayoutParams(
+            layoutParams = ViewGroup.MarginLayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            lp.marginEnd = marginEnd
-            layoutParams = lp
-            setBackgroundResource(if (selected) R.drawable.badge_pill else R.drawable.search_background)
+            ).apply { marginEnd = dp8 }
+            setBackgroundResource(if (selected) R.drawable.chip_active_bg else R.drawable.search_background)
             setTextColor(
                 if (selected) ContextCompat.getColor(this@PerAppProxyActivity, android.R.color.white)
-                else 0x99FFFFFF.toInt()
+                else MaterialColors.getColor(this@PerAppProxyActivity, com.google.android.material.R.attr.colorOnSurfaceVariant, 0)
             )
             isAllCaps = false
         }
@@ -203,23 +174,23 @@ class PerAppProxyActivity : BaseActivity() {
             "all" to null,
             "vpn" to null,
             AppInfo.CAT_SOCIAL to null,
-            AppInfo.CAT_SYSTEM to null,
             AppInfo.CAT_BROWSER to null,
             AppInfo.CAT_MEDIA to null,
             AppInfo.CAT_GAMES to null,
+            AppInfo.CAT_SYSTEM to null,
         )
         var idx = 0
         filters.keys.forEach { key ->
             if (idx < container.childCount) {
                 val child = container.getChildAt(idx)
-                if (child is TextView && !child.text.contains("\uD83D\uDCDF") && !child.text.contains("\uD83C\uDFE6") && !child.text.contains("\uD83C\uDFB5")) {
+                if (child is TextView) {
                     child.setBackgroundResource(
-                        if (key == selectedKey) R.drawable.badge_pill
+                        if (key == selectedKey) R.drawable.chip_active_bg
                         else R.drawable.search_background
                     )
                     child.setTextColor(
                         if (key == selectedKey) ContextCompat.getColor(this, android.R.color.white)
-                        else 0x99FFFFFF.toInt()
+                        else MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurfaceVariant, 0)
                     )
                 }
                 idx++
@@ -227,61 +198,8 @@ class PerAppProxyActivity : BaseActivity() {
         }
     }
 
-    private fun addPresetChip(container: ViewGroup, label: String, onClick: () -> Unit) {
-        val chip = TextView(this).apply {
-            text = label
-            textSize = 11f
-            setPadding(10.dpToPx(), 5.dpToPx(), 10.dpToPx(), 5.dpToPx())
-            val lp = ViewGroup.MarginLayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-            )
-            lp.marginEnd = 6.dpToPx()
-            layoutParams = lp
-            setBackgroundColor(0x15CE93D8.toInt())
-            setTextColor(0xCCCE93D8.toInt())
-            setOnClickListener { onClick() }
-            isAllCaps = false
-        }
-        container.addView(chip)
-    }
 
-    // ─── Presets ─────────────────────────────────────────────
 
-    private fun applyPresetMessengers() {
-        viewModel.clear()
-        appsAll?.forEach { app ->
-            val pkg = app.packageName
-            if (TELEGRAM_PREFIXES.any { pkg.startsWith(it) } || pkg in PerAppProxyViewModel.PRESET_MESSENGERS) {
-                viewModel.add(pkg)
-            }
-        }
-        toast(getString(R.string.recommended_apps_selected, viewModel.selectedCount, 0))
-        refreshList()
-    }
-
-    private fun applyPresetBanking() {
-        viewModel.clear()
-        appsAll?.forEach { app ->
-            if (app.category == AppInfo.CAT_FINANCE) {
-                viewModel.add(app.packageName)
-            }
-        }
-        toast("Банки выбраны: ${viewModel.selectedCount}")
-        refreshList()
-    }
-
-    private fun applyPresetMedia() {
-        viewModel.clear()
-        appsAll?.forEach { app ->
-            val pkg = app.packageName
-            if (pkg.startsWith("com.google.android.youtube") || pkg == "com.spotify.music") {
-                viewModel.add(pkg)
-            }
-        }
-        toast("Медиа выбраны: ${viewModel.selectedCount}")
-        refreshList()
-    }
 
     private fun selectRecommendedApps() {
         viewModel.clear()

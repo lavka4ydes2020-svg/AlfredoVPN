@@ -63,4 +63,7 @@
     <!-- Update card backgrounds -->
     <color name="update_card_green">#E8F5E9</color>
     <color name="update_card_amber">#FFF3E0</color>
+
+    <!-- Info block background -->
+    <color name="desc_block_bg">#F0E6F6</color>
 </resources>

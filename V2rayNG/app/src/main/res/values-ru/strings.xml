@@ -537,7 +537,7 @@
         <item>WebDAV</item>
     </string-array>
 
-    <string name="chip_preset_media">Медиа</string>
+    <string name="chip_preset_media">YouTube/Spotify</string>
 
     <!-- Per-app proxy chips (ru) -->
     <string name="btn_apply">Применить</string>

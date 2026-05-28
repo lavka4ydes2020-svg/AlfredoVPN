@@ -4,6 +4,9 @@
     <color name="color_fab_inactive">#646464</color>
     <color name="divider_color_light">#424242</color>
 
+    <!-- Info block background for night theme -->
+    <color name="desc_block_bg">#1E1630</color>
+
     <!-- Primary colors - main tone: light gray -->
     <color name="md_theme_primary">#E0E0E0</color>
     <color name="md_theme_onPrimary">#303030</color>

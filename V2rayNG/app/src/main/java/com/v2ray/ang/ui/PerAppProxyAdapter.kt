@@ -9,6 +9,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.databinding.ItemRecyclerBypassListBinding
 import com.v2ray.ang.dto.AppInfo
 import com.v2ray.ang.viewmodel.PerAppProxyViewModel
+import com.google.android.material.color.MaterialColors
 
 class PerAppProxyAdapter(
     var displayList: List<Any>,
@@ -106,7 +107,7 @@ class PerAppProxyAdapter(
         fun bind(category: String) {
             textView.text = AppInfo.CATEGORY_LABELS[category] ?: category
             textView.setTextAppearance(itemView.context, android.R.style.TextAppearance_Small)
-            textView.setTextColor(0x99FFFFFF.toInt())
+            textView.setTextColor(MaterialColors.getColor(itemView.context, com.google.android.material.R.attr.colorOnSurfaceVariant, 0))
             textView.setAllCaps(true)
             textView.textSize = 11f
         }
@@ -128,7 +129,7 @@ class PerAppProxyAdapter(
             itemBypassBinding.switchToggle.isChecked = isSelected
             itemBypassBinding.badgeVpn.visibility = if (isSelected) View.VISIBLE else View.GONE
             itemBypassBinding.root.setBackgroundColor(
-                if (isSelected) 0x0DCE93D8.toInt() else 0x00000000.toInt()
+                if (isSelected) MaterialColors.getColor(itemView.context, com.google.android.material.R.attr.colorSecondaryContainer, 0) else 0x00000000.toInt()
             )
 
             itemView.setOnClickListener(this)
@@ -141,7 +142,7 @@ class PerAppProxyAdapter(
             itemBypassBinding.switchToggle.isChecked = isNowSelected
             itemBypassBinding.badgeVpn.visibility = if (isNowSelected) View.VISIBLE else View.GONE
             itemBypassBinding.root.setBackgroundColor(
-                if (isNowSelected) 0x0DCE93D8.toInt() else 0x00000000.toInt()
+                if (isNowSelected) MaterialColors.getColor(itemView.context, com.google.android.material.R.attr.colorSecondaryContainer, 0) else 0x00000000.toInt()
             )
         }
     }
