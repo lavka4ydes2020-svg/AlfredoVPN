@@ -126,7 +126,7 @@ object AppConfig {
     const val APP_WIKI_MODE = "$APP_URL/wiki/Mode"
     const val APP_PRIVACY_POLICY = "$GITHUB_RAW_URL/lavka4ydes2020-svg/AlfredoVPN/master/CR.md"
     const val APP_PROMOTION_URL = ""
-    const val TG_CHANNEL_URL = "https://t.me/alfredo_vpn"
+    const val TG_CHANNEL_URL = "https://t.me/alfredovpn_info"
     const val DELAY_TEST_URL = "https://www.gstatic.com/generate_204"
     const val DELAY_TEST_URL2 = "https://www.google.com/generate_204"
 
