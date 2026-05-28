@@ -12,6 +12,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.google.android.material.snackbar.Snackbar
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.contracts.MainAdapterListener
@@ -223,8 +224,18 @@ class GroupServerFragment : BaseFragment<FragmentGroupServerBinding>(),
      * @param position The position in the list
      */
     private fun removeServerSub(guid: String, position: Int) {
+        val profile = mainViewModel.serversCache.firstOrNull { it.guid == guid }?.profile
         mainViewModel.removeServer(guid)
         adapter.removeServerSub(guid, position)
+
+        if (profile != null) {
+            Snackbar.make(binding.root, R.string.server_deleted_undo, Snackbar.LENGTH_LONG)
+                .setAction(R.string.undo) {
+                    mainViewModel.restoreServer(guid, profile)
+                    adapter.restoreServer(guid, profile, position)
+                }
+                .show()
+        }
     }
 
     /**

@@ -149,6 +149,13 @@ class MainRecyclerAdapter(
         }
     }
 
+    fun restoreServer(guid: String, profile: ProfileItem, position: Int) {
+        val insertPos = position.coerceAtMost(data.size)
+        data.add(insertPos, ServersCache(guid, profile))
+        notifyItemInserted(insertPos)
+        notifyItemRangeChanged(insertPos, data.size - insertPos)
+    }
+
     fun setSelectServer(fromPosition: Int, toPosition: Int) {
         notifyItemChanged(fromPosition)
         notifyItemChanged(toPosition)

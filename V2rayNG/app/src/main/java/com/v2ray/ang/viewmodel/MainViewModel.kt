@@ -16,6 +16,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.SubscriptionUpdateResult
 import com.v2ray.ang.dto.TestServiceMessage
+import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.ServersCache
 import com.v2ray.ang.dto.entities.SubscriptionCache
 import com.v2ray.ang.extension.matchesPattern
@@ -94,6 +95,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (index >= 0) {
             serversCache.removeAt(index)
         }
+    }
+
+    /**
+     * Restores a previously removed server.
+     * The server is re-added at the top of the list (position 0) for visibility.
+     * @param guid The GUID of the server to restore.
+     * @param profile The server configuration.
+     */
+    fun restoreServer(guid: String, profile: ProfileItem) {
+        MmkvManager.encodeServerConfig(guid, profile)
+        serverList.add(0, guid)
+        serversCache.add(0, ServersCache(guid, profile))
     }
 
     /**
