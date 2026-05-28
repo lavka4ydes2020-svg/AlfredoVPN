@@ -1,32 +1,48 @@
-# v2rayNG
+# Alfredo VPN
 
-A V2Ray client for Android, support [Xray core](https://github.com/XTLS/Xray-core) and [v2fly core](https://github.com/v2fly/v2ray-core)
+Быстрый и простой VPN для Android на базе Xray (VLESS + Reality).
 
-[![API](https://img.shields.io/badge/API-24%2B-yellow.svg?style=flat)](https://developer.android.com/about/versions/lollipop)
-[![Kotlin Version](https://img.shields.io/badge/Kotlin-2.3.0-blue.svg)](https://kotlinlang.org)
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/2dust/v2rayNG)](https://github.com/2dust/v2rayNG/commits/master)
-[![CodeFactor](https://www.codefactor.io/repository/github/2dust/v2rayng/badge)](https://www.codefactor.io/repository/github/2dust/v2rayng)
-[![GitHub Releases](https://img.shields.io/github/downloads/2dust/v2rayNG/latest/total?logo=github)](https://github.com/2dust/v2rayNG/releases)
-[![Chat on Telegram](https://img.shields.io/badge/Chat%20on-Telegram-brightgreen.svg)](https://t.me/v2rayn)
+[![API](https://img.shields.io/badge/API-24%2B-yellow.svg)](https://developer.android.com/about/versions/lollipop)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.3.0-blue.svg)](https://kotlinlang.org)
+[![Telegram](https://img.shields.io/badge/Telegram-@alfredovpn__info-blue.svg)](https://t.me/alfredovpn_info)
 
-### Telegram Channel
-[github_2dust](https://t.me/github_2dust)
+## Возможности
 
-### Usage
+- **VLESS + Reality** — современный протокол с маскировкой под обычный HTTPS
+- **Per-app VPN** — выберите, какие приложения идут через VPN, а какие напрямую
+- **Сайты в обход VPN** — банки, госуслуги, операторы и другие российские сервисы идут напрямую (49 доменов из коробки, настраиваемый список)
+- **Kill Switch** — блокирует трафик при обрыве VPN-соединения
+- **Always-on VPN** — постоянное подключение, не выключается
+- **Auto-reconnect** — автоматическое переподключение при смене WiFi/мобильной сети
+- **QS Tile** — быстрый переключатель в шторке уведомлений
+- **Индикатор скорости** — трафик в реальном времени в уведомлении
+- **Тёмная тема** — система / светлая / тёмная
+- **Поделиться конфигом** — QR-код и clipboard
+- **Без рекламы, без регистрации, без сбора данных**
 
-#### Geoip and Geosite
-- geoip.dat and geosite.dat files are in `Android/data/com.v2ray.ang/files/assets` (path may differ on some Android device)
-- download feature will get enhanced version in this [repo](https://github.com/Loyalsoldier/v2ray-rules-dat) (Note it need a working proxy)
-- latest official [domain list](https://github.com/Loyalsoldier/v2ray-rules-dat) and [ip list](https://github.com/Loyalsoldier/geoip) can be imported manually
-- possible to use third party dat file in the same folder, like [h2y](https://guide.v2fly.org/routing/sitedata.html#%E5%A4%96%E7%BD%AE%E7%9A%84%E5%9F%9F%E5%90%8D%E6%96%87%E4%BB%B6)
+## Установка
 
-### More in our [wiki](https://github.com/2dust/v2rayNG/wiki)
+Скачайте APK из [Releases](https://github.com/lavka4ydes2020-svg/AlfredoVPN/releases) или соберите из исходников.
 
-### Development guide
+### Сборка
 
-Android project under V2rayNG folder can be compiled directly in Android Studio, or using Gradle wrapper. But the v2ray core inside the aar is (probably) outdated.  
-The aar can be compiled from the Golang project [AndroidLibV2rayLite](https://github.com/2dust/AndroidLibV2rayLite) or [AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite).
-For a quick start, read guide for [Go Mobile](https://github.com/golang/go/wiki/Mobile) and [Makefiles for Go Developers](https://tutorialedge.net/golang/makefiles-for-go-developers/)
+```bash
+git clone https://github.com/lavka4ydes2020-svg/AlfredoVPN.git
+cd AlfredoVPN/V2rayNG
+./gradlew assemblePlaystoreDebug
+```
 
-v2rayNG can run on Android Emulators. For WSA, VPN permission need to be granted via
-`appops set [package name] ACTIVATE_VPN allow`
+APK: `app/build/outputs/apk/playstore/debug/`
+
+## Разработка
+
+Проект — форк [v2rayNG](https://github.com/2dust/v2rayNG) с ребрендингом и дополнительными функциями.
+
+- Application ID: `com.alfredovpn`
+- URL-схема: `alfredovpn://`
+- Минимальная версия Android: 7.0 (API 24)
+
+## Контакты
+
+- Telegram: [@alfredovpn_info](https://t.me/alfredovpn_info)
+- GitHub Issues: [сообщить о проблеме](https://github.com/lavka4ydes2020-svg/AlfredoVPN/issues)
