@@ -891,9 +891,38 @@ object CoreConfigManager {
             )
         )
 
+        // User bypass domains — route directly, bypassing VPN (highest priority)
+        applyBypassDomains(v2rayConfig)
+
         val rulesetItems = MmkvManager.decodeRoutingRulesets()
         rulesetItems?.forEach { key ->
             appendRoutingUserRule(configContext, key, v2rayConfig, policyGroupBalancerTags)
+        }
+    }
+
+    /**
+     * Inject user bypass domains as routing rules (direct outbound).
+     * These rules are inserted before geosite/geoip rules so they take priority.
+     */
+    private fun applyBypassDomains(v2rayConfig: V2rayConfig) {
+        val json = MmkvManager.decodeSettingsString(AppConfig.PREF_BYPASS_DOMAINS)
+        if (json.isNullOrEmpty()) return
+
+        try {
+            val arr = org.json.JSONArray(json)
+            val escaped = ArrayList<String>(arr.length())
+            for (i in 0 until arr.length()) {
+                escaped.add("domain:${arr.getString(i)}")
+            }
+            v2rayConfig.routing.rules.add(
+                V2rayConfig.RoutingBean.RulesBean(
+                    type = "field",
+                    domain = escaped,
+                    outboundTag = AppConfig.TAG_DIRECT,
+                )
+            )
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Failed to apply bypass domains", e)
         }
     }
 

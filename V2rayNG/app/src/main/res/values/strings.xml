@@ -168,6 +168,8 @@
     <string name="title_core_settings">Core Settings</string>
     <string name="title_vpn_settings">VPN Settings</string>
     <string name="title_pref_per_app_proxy">Per-app proxy</string>
+    <string name="title_pref_bypass_domains">Bypass domains</string>
+    <string name="summary_pref_bypass_domains">Websites that connect directly, bypassing VPN</string>
     <string name="summary_pref_per_app_proxy">General: Checked apps use proxy, unchecked apps connect directly; \nBypass mode: checked apps connect directly, unchecked apps use proxy. \nThe option to automatically select proxy applications is in the menu</string>
     <string name="title_pref_is_booted">Auto connect at startup</string>
     <string name="summary_pref_is_booted">Automatically connects to the selected server at startup, which may be unsuccessful</string>
@@ -617,6 +619,21 @@ Tip: also enable "Block connections without VPN" for maximum protection.</string
     <string name="about_logcat_desc">Диагностика и логи</string>
     <string name="about_update_current">Текущая версия: %s</string>
     <string name="about_server_info">VPN-сервер: Германия, VLESS+Reality\nШифрование: XTLS-RPRX-Vision\nСборка: %1$s · build %2$d</string>
+
+    <!-- Domain bypass -->
+    <string name="domain_bypass_info_text">Трафик к этим сайтам пойдёт напрямую, минуя VPN. Полезно для банков и госуслуг — они часто блокируют подключения через VPN.</string>
+    <string name="domain_bypass_section_label">Домены в обходе</string>
+    <string name="domain_bypass_add_button">Добавить домен</string>
+    <string name="domain_bypass_empty_title">Список пуст</string>
+    <string name="domain_bypass_empty_desc">Добавьте домены сайтов, которые должны работать напрямую, минуя VPN</string>
+    <string name="domain_bypass_add_dialog_title">Добавить домен</string>
+    <string name="domain_bypass_add_dialog_subtitle">Введите домен сайта, который должен работать напрямую</string>
+    <string name="domain_bypass_add_hint">sberbank.ru</string>
+    <string name="domain_bypass_tld_hint">.ru</string>
+    <string name="domain_bypass_duplicate">Этот домен уже в списке</string>
+    <string name="domain_bypass_invalid">Введите полный домен (например, sberbank.ru)</string>
+    <string name="domain_bypass_deleted">«%s» удалён</string>
+    <string name="domain_bypass_added">«%s» добавлен</string>
 
     <string name="title_server_picker">Select Server</string>
     <string name="search_server_hint">Search server…</string>

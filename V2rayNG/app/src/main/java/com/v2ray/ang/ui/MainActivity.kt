@@ -207,6 +207,7 @@ class MainActivity : HelperBaseActivity() {
 
         // Advanced settings button — show warning first
         val advancedBtn = sheetView.findViewById<View>(R.id.sheet_advanced)
+
         advancedBtn?.setOnClickListener {
             dialog.dismiss()
             showAdvancedWarningDialog()
@@ -226,6 +227,9 @@ class MainActivity : HelperBaseActivity() {
             .setMessage(R.string.advanced_warning_message)
             .setPositiveButton(R.string.advanced_warning_enter) { _, _ ->
                 requestActivityLauncher.launch(Intent(this, SettingsActivity::class.java))
+            }
+            .setNeutralButton(R.string.title_pref_bypass_domains) { _, _ ->
+                startActivity(Intent(this, DomainBypassActivity::class.java))
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
